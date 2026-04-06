@@ -165,16 +165,12 @@ const BarRequestPage: React.FC<Props> = ({ slug }) => {
             >
               <div className="flex items-start justify-between gap-3">
                 <p className="text-stone-800 text-sm leading-relaxed flex-1">{r.message}</p>
-                <span className={`flex-shrink-0 flex items-center gap-1 text-[10px] font-bold uppercase tracking-wider px-2 py-1 rounded-full ${
-                  r.status === 'done'
-                    ? 'bg-green-50 text-green-600'
-                    : 'bg-stone-100 text-stone-500'
-                }`}>
-                  {r.status === 'done' ? <><CheckCircle2 size={10} /> Done</> : <><Clock size={10} /> Pending</>}
+                <span className="flex-shrink-0 flex items-center gap-1 text-[10px] font-bold uppercase tracking-wider px-2 py-1 rounded-full bg-green-50 text-green-600">
+                  <CheckCircle2 size={10} /> Sent
                 </span>
               </div>
               <p className="text-[10px] text-stone-400 mt-2 flex items-center gap-1">
-                <Clock size={10} /> {formatTime(r.created_at)}
+                <Clock size={10} /> {formatTime(r.sentAt)}
               </p>
             </div>
           ))
