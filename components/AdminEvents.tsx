@@ -598,18 +598,27 @@ const BarPinManager: React.FC<{ eventId: number; eventSlug: string; initialPin: 
   const [pin, setPin] = useState(initialPin || '');
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
+  const [saveError, setSaveError] = useState('');
 
   const save = async () => {
     setSaving(true);
     setSaved(false);
+    setSaveError('');
     try {
-      await apiCall(`${API}/events/${eventId}/bar-pin`, {
+      const res = await apiCall(`${API}/events/${eventId}/bar-pin`, {
         method: 'PATCH',
         body: JSON.stringify({ pin }),
       });
-      setSaved(true);
-      setTimeout(() => setSaved(false), 2000);
-    } catch {}
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        setSaveError(data.error || 'Failed to save PIN');
+      } else {
+        setSaved(true);
+        setTimeout(() => setSaved(false), 2000);
+      }
+    } catch {
+      setSaveError('Network error. Please try again.');
+    }
     setSaving(false);
   };
 
@@ -621,7 +630,7 @@ const BarPinManager: React.FC<{ eventId: number; eventSlug: string; initialPin: 
           <p className="text-[10px] uppercase font-bold tracking-widest text-stone-500">Host PIN</p>
         </div>
         <p className="text-sm text-stone-600 mb-4">
-          Set a PIN code that the barman must enter to access the host page. Leave empty to allow access without a PIN.
+          A PIN is required to access the host page. The barman must enter this code before viewing or managing orders. A PIN must be set before bar service can be used.
         </p>
         <div className="flex gap-3 items-center">
           <input
@@ -642,6 +651,7 @@ const BarPinManager: React.FC<{ eventId: number; eventSlug: string; initialPin: 
             {saved ? 'Saved ✓' : saving ? 'Saving…' : 'Save PIN'}
           </button>
         </div>
+        {saveError && <p className="text-red-500 text-xs mt-2">{saveError}</p>}
       </div>
 
       <div className="bg-stone-50 border border-stone-200 rounded-xl p-5 space-y-3">

@@ -196,6 +196,9 @@ const BarHostPage: React.FC<Props> = ({ slug }) => {
           : 'bg-stone-800 border-stone-700'
       }`}
     >
+      <div className="flex items-center gap-2 mb-1.5">
+        <span className="text-[9px] font-bold uppercase tracking-wider text-[#b99755] bg-[#b99755]/10 px-2 py-0.5 rounded-full">Table {r.table_number}</span>
+      </div>
       <p className="text-white text-sm leading-relaxed">{r.message}</p>
       <p className="text-[10px] text-stone-500 mt-1.5 flex items-center gap-1">
         <Clock size={10} />
