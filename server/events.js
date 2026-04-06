@@ -423,14 +423,22 @@ router.get('/:id/packages', requireAdmin, async (req, res) => {
   }
 });
 
-router.patch('/:id/bar-pin', requireAdmin, async (req, res) => {
+router.patch('/:eventRef/bar-pin', requireAdmin, async (req, res) => {
   try {
-    const { id } = req.params;
+    const { eventRef } = req.params;
     const { pin } = req.body;
-    const result = await pool.query(
-      'UPDATE events SET bar_host_pin = $1 WHERE id = $2 RETURNING id, bar_host_pin',
-      [pin || '', id]
-    );
+    let result;
+    if (/^\d+$/.test(eventRef)) {
+      result = await pool.query(
+        'UPDATE events SET bar_host_pin = $1 WHERE id = $2 RETURNING id',
+        [pin || null, parseInt(eventRef, 10)]
+      );
+    } else {
+      result = await pool.query(
+        'UPDATE events SET bar_host_pin = $1 WHERE slug = $2 RETURNING id',
+        [pin || null, eventRef]
+      );
+    }
     if (result.rows.length === 0) return res.status(404).json({ error: 'Event not found' });
     res.json({ ok: true });
   } catch (err) {
@@ -446,7 +454,7 @@ router.get('/:slug/bar-pin-check', async (req, res) => {
     const result = await pool.query('SELECT bar_host_pin FROM events WHERE slug = $1', [slug]);
     if (result.rows.length === 0) return res.status(404).json({ error: 'Event not found' });
     const storedPin = result.rows[0].bar_host_pin || '';
-    if (!storedPin) return res.json({ valid: true });
+    if (!storedPin) return res.json({ valid: false, reason: 'no_pin_set' });
     res.json({ valid: pin === storedPin });
   } catch (err) {
     console.error(err);
@@ -499,7 +507,7 @@ router.get('/:slug/bar-requests', async (req, res) => {
     if (eventResult.rows.length === 0) return res.status(404).json({ error: 'Event not found' });
     const event = eventResult.rows[0];
     const storedPin = event.bar_host_pin || '';
-    if (storedPin && pin !== storedPin) return res.status(403).json({ error: 'Invalid PIN' });
+    if (!storedPin || pin !== storedPin) return res.status(403).json({ error: 'Invalid PIN' });
     const result = await pool.query(
       'SELECT * FROM bar_requests WHERE event_id = $1 ORDER BY created_at DESC',
       [event.id]
@@ -519,7 +527,7 @@ router.patch('/:slug/bar-requests/:reqId', async (req, res) => {
     if (eventResult.rows.length === 0) return res.status(404).json({ error: 'Event not found' });
     const event = eventResult.rows[0];
     const storedPin = event.bar_host_pin || '';
-    if (storedPin && pin !== storedPin) return res.status(403).json({ error: 'Invalid PIN' });
+    if (!storedPin || pin !== storedPin) return res.status(403).json({ error: 'Invalid PIN' });
     const result = await pool.query(
       'UPDATE bar_requests SET status = $1 WHERE id = $2 AND event_id = $3 RETURNING *',
       [status || 'done', reqId, event.id]

@@ -79,6 +79,9 @@ const BarHostPage: React.FC<Props> = ({ slug }) => {
         setPin(testPin);
         setAuthenticated(true);
         sessionStorage.setItem('bar_host_pin_' + slug, testPin);
+      } else if (data.reason === 'no_pin_set') {
+        setAuthError('No PIN has been configured for this event. Please ask the organiser to set a host PIN in the admin panel.');
+        sessionStorage.removeItem('bar_host_pin_' + slug);
       } else {
         setAuthError('Incorrect PIN. Please try again.');
         sessionStorage.removeItem('bar_host_pin_' + slug);
