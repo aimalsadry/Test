@@ -439,7 +439,7 @@ router.patch('/:id/bar-pin', requireAdmin, async (req, res) => {
   }
 });
 
-router.get('/by-slug/:slug/bar-pin-check', async (req, res) => {
+router.get('/:slug/bar-pin-check', async (req, res) => {
   try {
     const { slug } = req.params;
     const { pin } = req.query;
@@ -454,7 +454,25 @@ router.get('/by-slug/:slug/bar-pin-check', async (req, res) => {
   }
 });
 
-router.post('/by-slug/:slug/bar-request', async (req, res) => {
+router.get('/:slug/table-requests', async (req, res) => {
+  try {
+    const { slug } = req.params;
+    const { table } = req.query;
+    if (!table) return res.status(400).json({ error: 'Table number required' });
+    const eventResult = await pool.query('SELECT id FROM events WHERE slug = $1', [slug]);
+    if (eventResult.rows.length === 0) return res.status(404).json({ error: 'Event not found' });
+    const result = await pool.query(
+      'SELECT id, table_number, message, status, created_at FROM bar_requests WHERE event_id = $1 AND table_number = $2 ORDER BY created_at DESC',
+      [eventResult.rows[0].id, table.toString().trim()]
+    );
+    res.json(result.rows);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
+router.post('/:slug/bar-request', async (req, res) => {
   try {
     const { slug } = req.params;
     const { table_number, message } = req.body;
@@ -473,7 +491,7 @@ router.post('/by-slug/:slug/bar-request', async (req, res) => {
   }
 });
 
-router.get('/by-slug/:slug/bar-requests', async (req, res) => {
+router.get('/:slug/bar-requests', async (req, res) => {
   try {
     const { slug } = req.params;
     const { pin } = req.query;
@@ -493,7 +511,7 @@ router.get('/by-slug/:slug/bar-requests', async (req, res) => {
   }
 });
 
-router.patch('/by-slug/:slug/bar-requests/:reqId', async (req, res) => {
+router.patch('/:slug/bar-requests/:reqId', async (req, res) => {
   try {
     const { slug, reqId } = req.params;
     const { pin, status } = req.body;

@@ -1,10 +1,12 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { Send, Coffee, Clock, CheckCircle2, AlertCircle, ChevronRight } from 'lucide-react';
 
-interface SentRequest {
-  id: string;
+interface BarRequest {
+  id: number;
+  table_number: string;
   message: string;
-  sentAt: string;
+  status: string;
+  created_at: string;
 }
 
 interface Props {
@@ -12,7 +14,6 @@ interface Props {
 }
 
 const SESSION_TABLE_KEY = 'bar_table_number';
-const SESSION_REQUESTS_KEY = 'bar_sent_requests';
 
 function formatTime(ts: string) {
   const d = new Date(ts);
@@ -23,7 +24,7 @@ const BarRequestPage: React.FC<Props> = ({ slug }) => {
   const [tableNumber, setTableNumber] = useState('');
   const [confirmedTable, setConfirmedTable] = useState<string | null>(null);
   const [message, setMessage] = useState('');
-  const [requests, setRequests] = useState<SentRequest[]>([]);
+  const [requests, setRequests] = useState<BarRequest[]>([]);
   const [sending, setSending] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState(false);
@@ -32,18 +33,31 @@ const BarRequestPage: React.FC<Props> = ({ slug }) => {
 
   useEffect(() => {
     const saved = sessionStorage.getItem(SESSION_TABLE_KEY + '_' + slug);
-    if (saved) {
-      setConfirmedTable(saved);
-      const savedReqs = sessionStorage.getItem(SESSION_REQUESTS_KEY + '_' + slug);
-      if (savedReqs) {
-        try { setRequests(JSON.parse(savedReqs)); } catch {}
-      }
-    }
+    if (saved) setConfirmedTable(saved);
+
     fetch(`/api/events/by-slug/${slug}`)
       .then(r => r.json())
       .then(data => { if (data.title) setEventTitle(data.title); })
       .catch(() => {});
   }, [slug]);
+
+  const loadRequests = useCallback(async () => {
+    if (!confirmedTable) return;
+    try {
+      const res = await fetch(`/api/events/${slug}/table-requests?table=${encodeURIComponent(confirmedTable)}`);
+      if (res.ok) {
+        const data: BarRequest[] = await res.json();
+        setRequests(data);
+      }
+    } catch {}
+  }, [slug, confirmedTable]);
+
+  useEffect(() => {
+    if (!confirmedTable) return;
+    loadRequests();
+    const id = setInterval(loadRequests, 3000);
+    return () => clearInterval(id);
+  }, [confirmedTable, loadRequests]);
 
   const confirmTable = () => {
     const t = tableNumber.trim();
@@ -52,14 +66,13 @@ const BarRequestPage: React.FC<Props> = ({ slug }) => {
     setConfirmedTable(t);
   };
 
-  const handleSend = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!message.trim() || !confirmedTable) return;
+  const doSend = async () => {
+    if (!message.trim() || !confirmedTable || sending) return;
     setSending(true);
     setError('');
     setSuccess(false);
     try {
-      const res = await fetch(`/api/events/by-slug/${slug}/bar-request`, {
+      const res = await fetch(`/api/events/${slug}/bar-request`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ table_number: confirmedTable, message: message.trim() }),
@@ -68,22 +81,27 @@ const BarRequestPage: React.FC<Props> = ({ slug }) => {
         const data = await res.json();
         setError(data.error || 'Failed to send request');
       } else {
-        const newReq: SentRequest = {
-          id: Date.now().toString(),
-          message: message.trim(),
-          sentAt: new Date().toISOString(),
-        };
-        const updated = [newReq, ...requests];
-        setRequests(updated);
-        sessionStorage.setItem(SESSION_REQUESTS_KEY + '_' + slug, JSON.stringify(updated));
         setMessage('');
         setSuccess(true);
         setTimeout(() => setSuccess(false), 2500);
+        loadRequests();
       }
     } catch {
       setError('Network error. Please try again.');
     }
     setSending(false);
+  };
+
+  const handleFormSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    doSend();
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      doSend();
+    }
   };
 
   if (!confirmedTable) {
@@ -108,7 +126,7 @@ const BarRequestPage: React.FC<Props> = ({ slug }) => {
                   type="text"
                   value={tableNumber}
                   onChange={e => setTableNumber(e.target.value)}
-                  onKeyDown={e => e.key === 'Enter' && confirmTable()}
+                  onKeyDown={e => { if (e.key === 'Enter') confirmTable(); }}
                   className="w-full px-4 py-3 bg-stone-50 border border-stone-200 rounded-xl text-stone-900 text-lg font-bold text-center focus:outline-none focus:border-stone-400 tracking-widest"
                   placeholder="e.g. 5"
                   autoFocus
@@ -142,7 +160,7 @@ const BarRequestPage: React.FC<Props> = ({ slug }) => {
           </div>
           <button
             data-testid="button-change-table"
-            onClick={() => { sessionStorage.removeItem(SESSION_TABLE_KEY + '_' + slug); setConfirmedTable(null); setTableNumber(''); }}
+            onClick={() => { sessionStorage.removeItem(SESSION_TABLE_KEY + '_' + slug); setConfirmedTable(null); setTableNumber(''); setRequests([]); }}
             className="text-[10px] text-stone-500 hover:text-stone-300 transition-colors uppercase tracking-wider"
           >
             Change
@@ -165,12 +183,19 @@ const BarRequestPage: React.FC<Props> = ({ slug }) => {
             >
               <div className="flex items-start justify-between gap-3">
                 <p className="text-stone-800 text-sm leading-relaxed flex-1">{r.message}</p>
-                <span className="flex-shrink-0 flex items-center gap-1 text-[10px] font-bold uppercase tracking-wider px-2 py-1 rounded-full bg-green-50 text-green-600">
-                  <CheckCircle2 size={10} /> Sent
+                <span className={`flex-shrink-0 flex items-center gap-1 text-[10px] font-bold uppercase tracking-wider px-2 py-1 rounded-full ${
+                  r.status === 'done'
+                    ? 'bg-green-50 text-green-600'
+                    : 'bg-amber-50 text-amber-600'
+                }`}>
+                  {r.status === 'done'
+                    ? <><CheckCircle2 size={10} /> Done</>
+                    : <><Clock size={10} /> Pending</>
+                  }
                 </span>
               </div>
               <p className="text-[10px] text-stone-400 mt-2 flex items-center gap-1">
-                <Clock size={10} /> {formatTime(r.sentAt)}
+                <Clock size={10} /> {formatTime(r.created_at)}
               </p>
             </div>
           ))
@@ -188,7 +213,7 @@ const BarRequestPage: React.FC<Props> = ({ slug }) => {
             <AlertCircle size={16} /> {error}
           </div>
         )}
-        <form onSubmit={handleSend} className="flex gap-3 items-end">
+        <form onSubmit={handleFormSubmit} className="flex gap-3 items-end">
           <textarea
             data-testid="input-request-message"
             ref={textareaRef}
@@ -197,7 +222,7 @@ const BarRequestPage: React.FC<Props> = ({ slug }) => {
             rows={2}
             placeholder="Type your order or request…"
             className="flex-1 px-4 py-3 bg-stone-50 border border-stone-200 rounded-xl text-stone-800 text-sm resize-none focus:outline-none focus:border-stone-400"
-            onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSend(e as any); } }}
+            onKeyDown={handleKeyDown}
           />
           <button
             data-testid="button-send-request"

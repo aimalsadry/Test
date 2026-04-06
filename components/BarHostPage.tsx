@@ -9,6 +9,11 @@ interface BarRequest {
   created_at: string;
 }
 
+interface TableGroup {
+  tableNumber: string;
+  requests: BarRequest[];
+}
+
 interface Props {
   slug: string;
 }
@@ -23,6 +28,16 @@ function timeAgo(ts: string) {
   if (diff < 60) return `${diff}s ago`;
   if (diff < 3600) return `${Math.floor(diff / 60)}m ago`;
   return `${Math.floor(diff / 3600)}h ago`;
+}
+
+function groupByTable(requests: BarRequest[]): TableGroup[] {
+  const map = new Map<string, BarRequest[]>();
+  for (const r of requests) {
+    const key = r.table_number;
+    if (!map.has(key)) map.set(key, []);
+    map.get(key)!.push(r);
+  }
+  return Array.from(map.entries()).map(([tableNumber, reqs]) => ({ tableNumber, requests: reqs }));
 }
 
 const BarHostPage: React.FC<Props> = ({ slug }) => {
@@ -58,7 +73,7 @@ const BarHostPage: React.FC<Props> = ({ slug }) => {
     setAuthLoading(true);
     setAuthError('');
     try {
-      const res = await fetch(`/api/events/by-slug/${slug}/bar-pin-check?pin=${encodeURIComponent(testPin)}`);
+      const res = await fetch(`/api/events/${slug}/bar-pin-check?pin=${encodeURIComponent(testPin)}`);
       const data = await res.json();
       if (data.valid) {
         setPin(testPin);
@@ -83,7 +98,7 @@ const BarHostPage: React.FC<Props> = ({ slug }) => {
     if (!authenticated || !pin) return;
     setLoading(true);
     try {
-      const res = await fetch(`/api/events/by-slug/${slug}/bar-requests?pin=${encodeURIComponent(pin)}`);
+      const res = await fetch(`/api/events/${slug}/bar-requests?pin=${encodeURIComponent(pin)}`);
       if (res.status === 403) {
         setAuthenticated(false);
         sessionStorage.removeItem('bar_host_pin_' + slug);
@@ -108,7 +123,7 @@ const BarHostPage: React.FC<Props> = ({ slug }) => {
   const markDone = async (reqId: number) => {
     setMarkingDone(prev => new Set(prev).add(reqId));
     try {
-      await fetch(`/api/events/by-slug/${slug}/bar-requests/${reqId}`, {
+      await fetch(`/api/events/${slug}/bar-requests/${reqId}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ pin, status: 'done' }),
@@ -120,6 +135,8 @@ const BarHostPage: React.FC<Props> = ({ slug }) => {
 
   const pending = requests.filter(r => r.status === 'pending');
   const done = requests.filter(r => r.status === 'done');
+  const pendingGroups = groupByTable(pending);
+  const doneGroups = groupByTable(done);
 
   if (!authenticated) {
     return (
@@ -139,6 +156,7 @@ const BarHostPage: React.FC<Props> = ({ slug }) => {
               <input
                 data-testid="input-host-pin"
                 type="password"
+                autoComplete="new-password"
                 value={enteredPin}
                 onChange={e => setEnteredPin(e.target.value)}
                 className="w-full px-4 py-3 bg-stone-800 border border-stone-700 rounded-xl text-white text-center text-xl font-bold tracking-[0.3em] focus:outline-none focus:border-[#b99755] transition-colors"
@@ -165,6 +183,66 @@ const BarHostPage: React.FC<Props> = ({ slug }) => {
     );
   }
 
+  const renderRequestCard = (r: BarRequest) => (
+    <div
+      key={r.id}
+      data-testid={`card-bar-request-${r.id}`}
+      className={`rounded-xl border px-4 py-3 transition-all ${
+        r.status === 'done'
+          ? 'bg-stone-800/50 border-stone-800 opacity-70'
+          : 'bg-stone-800 border-stone-700'
+      }`}
+    >
+      <p className="text-white text-sm leading-relaxed">{r.message}</p>
+      <p className="text-[10px] text-stone-500 mt-1.5 flex items-center gap-1">
+        <Clock size={10} />
+        {formatTime(r.created_at)} · {timeAgo(r.created_at)}
+      </p>
+      {r.status === 'pending' && (
+        <div className="mt-3 flex justify-end">
+          <button
+            data-testid={`button-mark-done-${r.id}`}
+            onClick={() => markDone(r.id)}
+            disabled={markingDone.has(r.id)}
+            className="flex items-center gap-2 px-4 py-2 bg-green-600 hover:bg-green-500 text-white rounded-lg text-xs font-bold uppercase tracking-wider transition-all active:scale-95 disabled:opacity-50"
+          >
+            <CheckCircle2 size={13} />
+            {markingDone.has(r.id) ? 'Marking…' : 'Mark Done'}
+          </button>
+        </div>
+      )}
+      {r.status === 'done' && (
+        <div className="mt-2 flex items-center gap-1.5 text-green-500 text-[10px] font-bold uppercase tracking-wider">
+          <CheckCircle2 size={11} /> Completed
+        </div>
+      )}
+    </div>
+  );
+
+  const renderTableGroup = (group: TableGroup) => (
+    <div
+      key={group.tableNumber}
+      data-testid={`group-table-${group.tableNumber}`}
+      className="bg-stone-900 border border-stone-700 rounded-2xl overflow-hidden shadow-lg shadow-stone-950/50"
+    >
+      <div className="flex items-center gap-3 px-5 py-3 bg-stone-800 border-b border-stone-700">
+        <div className="w-9 h-9 rounded-lg bg-[#b99755]/15 border border-[#b99755]/30 flex flex-col items-center justify-center flex-shrink-0">
+          <span className="text-[8px] text-[#b99755]/70 uppercase tracking-wider font-bold leading-none">TBL</span>
+          <span className="text-[#b99755] font-bold text-base leading-tight">{group.tableNumber}</span>
+        </div>
+        <div>
+          <span className="text-white font-bold text-sm">Table {group.tableNumber}</span>
+          <p className="text-[10px] text-stone-500">{group.requests.length} request{group.requests.length !== 1 ? 's' : ''}</p>
+        </div>
+      </div>
+      <div className="p-4 space-y-3">
+        {group.requests.map(renderRequestCard)}
+      </div>
+    </div>
+  );
+
+  const activeGroups = showDone ? doneGroups : pendingGroups;
+
   return (
     <div className="min-h-screen bg-stone-950 flex flex-col">
       <div className="bg-stone-900 border-b border-stone-800 px-5 py-4 flex items-center justify-between">
@@ -175,7 +253,7 @@ const BarHostPage: React.FC<Props> = ({ slug }) => {
         <div className="flex items-center gap-3">
           {lastUpdate && (
             <span className="text-[10px] text-stone-600 uppercase tracking-wider hidden sm:block">
-              Updated {timeAgo(lastUpdate.toISOString())}
+              {timeAgo(lastUpdate.toISOString())}
             </span>
           )}
           <button
@@ -215,63 +293,21 @@ const BarHostPage: React.FC<Props> = ({ slug }) => {
         </button>
       </div>
 
-      <div className="flex-1 overflow-y-auto px-4 py-5 space-y-3 max-w-2xl mx-auto w-full">
-        {!showDone && pending.length === 0 && (
+      <div className="flex-1 overflow-y-auto px-4 py-5 space-y-4 max-w-2xl mx-auto w-full">
+        {activeGroups.length === 0 && !showDone && (
           <div className="text-center py-16 text-stone-600">
             <Inbox size={44} className="mx-auto mb-3 opacity-40" />
             <p className="text-sm">No pending requests</p>
             <p className="text-[11px] mt-1 text-stone-700">New orders will appear here automatically</p>
           </div>
         )}
-        {showDone && done.length === 0 && (
+        {activeGroups.length === 0 && showDone && (
           <div className="text-center py-16 text-stone-600">
             <CheckCircle2 size={44} className="mx-auto mb-3 opacity-30" />
             <p className="text-sm">No completed requests yet</p>
           </div>
         )}
-        {(showDone ? done : pending).map(r => (
-          <div
-            key={r.id}
-            data-testid={`card-bar-request-${r.id}`}
-            className={`rounded-2xl border px-5 py-4 transition-all ${
-              r.status === 'done'
-                ? 'bg-stone-900 border-stone-800 opacity-70'
-                : 'bg-stone-900 border-stone-700 shadow-lg shadow-stone-950/50'
-            }`}
-          >
-            <div className="flex items-start gap-4">
-              <div className="flex-shrink-0 w-12 h-12 rounded-xl bg-[#b99755]/15 border border-[#b99755]/30 flex flex-col items-center justify-center">
-                <span className="text-[9px] text-[#b99755]/70 uppercase tracking-wider font-bold leading-none">TBL</span>
-                <span className="text-[#b99755] font-bold text-lg leading-tight">{r.table_number}</span>
-              </div>
-              <div className="flex-1 min-w-0">
-                <p className="text-white text-sm leading-relaxed">{r.message}</p>
-                <p className="text-[10px] text-stone-500 mt-1.5 flex items-center gap-1">
-                  <Clock size={10} />
-                  {formatTime(r.created_at)} · {timeAgo(r.created_at)}
-                </p>
-              </div>
-            </div>
-            {r.status === 'pending' && (
-              <div className="mt-4 flex justify-end">
-                <button
-                  data-testid={`button-mark-done-${r.id}`}
-                  onClick={() => markDone(r.id)}
-                  disabled={markingDone.has(r.id)}
-                  className="flex items-center gap-2 px-5 py-2.5 bg-green-600 hover:bg-green-500 text-white rounded-xl text-xs font-bold uppercase tracking-wider transition-all active:scale-95 disabled:opacity-50"
-                >
-                  <CheckCircle2 size={14} />
-                  {markingDone.has(r.id) ? 'Marking…' : 'Mark Done'}
-                </button>
-              </div>
-            )}
-            {r.status === 'done' && (
-              <div className="mt-3 flex items-center gap-1.5 text-green-500 text-[11px] font-bold uppercase tracking-wider">
-                <CheckCircle2 size={12} /> Completed
-              </div>
-            )}
-          </div>
-        ))}
+        {activeGroups.map(renderTableGroup)}
       </div>
 
       <div className="bg-stone-900 border-t border-stone-800 px-5 py-3 flex items-center justify-between">
@@ -281,9 +317,9 @@ const BarHostPage: React.FC<Props> = ({ slug }) => {
         <button
           data-testid="button-host-logout"
           onClick={() => { sessionStorage.removeItem('bar_host_pin_' + slug); setAuthenticated(false); setPin(''); setEnteredPin(''); }}
-          className="text-[10px] text-stone-600 hover:text-stone-400 uppercase tracking-wider transition-colors"
+          className="text-[10px] text-stone-600 hover:text-stone-400 uppercase tracking-wider transition-colors flex items-center gap-1"
         >
-          Lock
+          <Lock size={10} /> Lock
         </button>
       </div>
     </div>
