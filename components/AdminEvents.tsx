@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
-import { Plus, Trash2, ChevronDown, ChevronUp, Upload, Users, Package, Eye, Check, X, ToggleLeft, ToggleRight, Images } from 'lucide-react';
+import { Plus, Trash2, ChevronDown, ChevronUp, Upload, Users, Package, Eye, Check, X, ToggleLeft, ToggleRight, Images, Coffee, Lock, ExternalLink } from 'lucide-react';
 
 const API = '/api';
 
@@ -44,6 +44,7 @@ interface Event {
   text_bg_opacity: number;
   is_published: boolean;
   show_in_header: boolean;
+  bar_host_pin: string;
   package_count: string;
   attendee_count: string;
 }
@@ -593,11 +594,97 @@ const AttendeesView: React.FC<{ eventId: number }> = ({ eventId }) => {
   );
 };
 
+const BarPinManager: React.FC<{ eventId: number; eventSlug: string; initialPin: string }> = ({ eventId, eventSlug, initialPin }) => {
+  const [pin, setPin] = useState(initialPin || '');
+  const [saving, setSaving] = useState(false);
+  const [saved, setSaved] = useState(false);
+
+  const save = async () => {
+    setSaving(true);
+    setSaved(false);
+    try {
+      await apiCall(`${API}/events/${eventId}/bar-pin`, {
+        method: 'PATCH',
+        body: JSON.stringify({ pin }),
+      });
+      setSaved(true);
+      setTimeout(() => setSaved(false), 2000);
+    } catch {}
+    setSaving(false);
+  };
+
+  return (
+    <div className="mt-4 space-y-6">
+      <div className="bg-stone-50 border border-stone-200 rounded-xl p-5">
+        <div className="flex items-center gap-2 mb-4">
+          <Lock size={15} className="text-stone-500" />
+          <p className="text-[10px] uppercase font-bold tracking-widest text-stone-500">Host PIN</p>
+        </div>
+        <p className="text-sm text-stone-600 mb-4">
+          Set a PIN code that the barman must enter to access the host page. Leave empty to allow access without a PIN.
+        </p>
+        <div className="flex gap-3 items-center">
+          <input
+            data-testid="input-bar-pin"
+            type="text"
+            value={pin}
+            onChange={e => setPin(e.target.value)}
+            maxLength={20}
+            className="flex-1 px-4 py-2.5 bg-white border border-stone-200 rounded-lg text-sm font-mono tracking-widest text-stone-900 focus:outline-none focus:border-stone-400"
+            placeholder="e.g. 1234"
+          />
+          <button
+            data-testid="button-save-pin"
+            onClick={save}
+            disabled={saving}
+            className="px-5 py-2.5 bg-stone-900 text-white rounded-lg text-xs font-bold uppercase tracking-wider hover:bg-stone-800 disabled:opacity-60"
+          >
+            {saved ? 'Saved ✓' : saving ? 'Saving…' : 'Save PIN'}
+          </button>
+        </div>
+      </div>
+
+      <div className="bg-stone-50 border border-stone-200 rounded-xl p-5 space-y-3">
+        <div className="flex items-center gap-2 mb-1">
+          <Coffee size={15} className="text-stone-500" />
+          <p className="text-[10px] uppercase font-bold tracking-widest text-stone-500">Bar Service Links</p>
+        </div>
+        <div className="space-y-2">
+          <div>
+            <p className="text-[10px] text-stone-400 uppercase tracking-wider mb-1 font-bold">Customer Request Page</p>
+            <a
+              href={`/event/${eventSlug}/request`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex items-center gap-2 text-sm text-stone-700 hover:text-stone-900 font-mono bg-white border border-stone-200 rounded-lg px-3 py-2 hover:border-stone-400 transition-colors"
+            >
+              <span className="flex-1 truncate">/event/{eventSlug}/request</span>
+              <ExternalLink size={12} className="shrink-0 text-stone-400" />
+            </a>
+          </div>
+          <div>
+            <p className="text-[10px] text-stone-400 uppercase tracking-wider mb-1 font-bold">Barman Host Page</p>
+            <a
+              href={`/event/${eventSlug}/host`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex items-center gap-2 text-sm text-stone-700 hover:text-stone-900 font-mono bg-white border border-stone-200 rounded-lg px-3 py-2 hover:border-stone-400 transition-colors"
+            >
+              <span className="flex-1 truncate">/event/{eventSlug}/host</span>
+              <ExternalLink size={12} className="shrink-0 text-stone-400" />
+            </a>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
 const AdminEvents: React.FC = () => {
   const [events, setEvents] = useState<Event[]>([]);
   const [loading, setLoading] = useState(true);
   const [expanded, setExpanded] = useState<number | 'new' | null>(null);
-  const [activeTab, setActiveTab] = useState<Record<number, 'edit' | 'packages' | 'images' | 'attendees'>>({});
+  const [activeTab, setActiveTab] = useState<Record<number, 'edit' | 'packages' | 'images' | 'attendees' | 'bar'>>({});
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
   const [togglingHeader, setTogglingHeader] = useState<number | null>(null);
@@ -614,7 +701,7 @@ const AdminEvents: React.FC = () => {
   useEffect(() => { load(); }, [load]);
 
   const getTab = (id: number) => activeTab[id] || 'edit';
-  const setTab = (id: number, tab: 'edit' | 'packages' | 'images' | 'attendees') => setActiveTab(t => ({ ...t, [id]: tab }));
+  const setTab = (id: number, tab: 'edit' | 'packages' | 'images' | 'attendees' | 'bar') => setActiveTab(t => ({ ...t, [id]: tab }));
 
   const createEvent = async (data: Partial<Event>) => {
     setSaving(true);
@@ -749,13 +836,14 @@ const AdminEvents: React.FC = () => {
               {expanded === ev.id && (
                 <div className="border-t border-stone-100 p-4">
                   <div className="flex gap-1 mb-4 border-b border-stone-100 pb-3 overflow-x-auto">
-                    {(['edit', 'packages', 'images', 'attendees'] as const).map(tab => (
+                    {(['edit', 'packages', 'images', 'attendees', 'bar'] as const).map(tab => (
                       <button key={tab} onClick={() => setTab(ev.id, tab)}
                         className={`px-4 py-2 rounded-lg text-xs font-bold uppercase tracking-wider transition-colors whitespace-nowrap ${getTab(ev.id) === tab ? 'bg-stone-900 text-white' : 'text-stone-500 hover:bg-stone-100'}`}>
                         {tab === 'edit' ? 'Details' :
                           tab === 'packages' ? (<span className="flex items-center gap-1"><Package size={12} /> Packages</span>) :
                           tab === 'images' ? (<span className="flex items-center gap-1"><Images size={12} /> Gallery</span>) :
-                          (<span className="flex items-center gap-1"><Users size={12} /> Attendees</span>)}
+                          tab === 'attendees' ? (<span className="flex items-center gap-1"><Users size={12} /> Attendees</span>) :
+                          (<span className="flex items-center gap-1"><Coffee size={12} /> Bar Service</span>)}
                       </button>
                     ))}
                   </div>
@@ -766,6 +854,7 @@ const AdminEvents: React.FC = () => {
                   {getTab(ev.id) === 'packages' && <PackagesManager eventId={ev.id} />}
                   {getTab(ev.id) === 'images' && <ImagesManager eventId={ev.id} />}
                   {getTab(ev.id) === 'attendees' && <AttendeesView eventId={ev.id} />}
+                  {getTab(ev.id) === 'bar' && <BarPinManager eventId={ev.id} eventSlug={ev.slug} initialPin={ev.bar_host_pin || ''} />}
                 </div>
               )}
             </div>

@@ -313,6 +313,18 @@ export async function initDb() {
   await pool.query(`ALTER TABLE events ADD COLUMN IF NOT EXISTS bg_type TEXT DEFAULT 'image'`);
   await pool.query(`ALTER TABLE events ADD COLUMN IF NOT EXISTS bg_video TEXT DEFAULT ''`);
   await pool.query(`ALTER TABLE event_packages ADD COLUMN IF NOT EXISTS payment_link TEXT DEFAULT ''`);
+  await pool.query(`ALTER TABLE events ADD COLUMN IF NOT EXISTS bar_host_pin TEXT DEFAULT ''`);
+
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS bar_requests (
+      id SERIAL PRIMARY KEY,
+      event_id INTEGER REFERENCES events(id) ON DELETE CASCADE,
+      table_number TEXT NOT NULL,
+      message TEXT NOT NULL,
+      status TEXT DEFAULT 'pending',
+      created_at TIMESTAMPTZ DEFAULT NOW()
+    )
+  `);
 
   await pool.query(`
     CREATE TABLE IF NOT EXISTS event_images (

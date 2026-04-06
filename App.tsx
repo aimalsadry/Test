@@ -20,6 +20,8 @@ const EventPageComponent = lazy(() => import('./components/EventPage'));
 const EventReceiptPageComponent = lazy(() => import('./components/EventReceiptPage'));
 const TicketVerifyPageComponent = lazy(() => import('./components/TicketVerifyPage'));
 const DoorPageComponent = lazy(() => import('./components/DoorPage'));
+const BarRequestPageComponent = lazy(() => import('./components/BarRequestPage'));
+const BarHostPageComponent = lazy(() => import('./components/BarHostPage'));
 
 const GOOGLE_SCRIPT_URL = import.meta.env.VITE_GOOGLE_SCRIPT_URL || '';
 const GOOGLE_INVESTMENT_SCRIPT_URL = import.meta.env.VITE_GOOGLE_INVESTMENT_SCRIPT_URL || '';
@@ -394,7 +396,7 @@ const InvestmentPage = () => {
   );
 };
 
-type View = 'home' | 'about' | 'card' | 'products' | 'investment' | 'admin' | 'product-page' | 'receipt' | 'custom-page' | 'astand' | 'event-page' | 'event-receipt' | 'ticket-verify' | 'door';
+type View = 'home' | 'about' | 'card' | 'products' | 'investment' | 'admin' | 'product-page' | 'receipt' | 'custom-page' | 'astand' | 'event-page' | 'event-receipt' | 'ticket-verify' | 'door' | 'bar-request' | 'bar-host';
 
 const STATIC_PATHS = ['/', '/card', '/products', '/about', '/investment', '/admin', '/more', '/astand', '/event', '/event-receipt', '/ticket', '/door'];
 
@@ -408,7 +410,12 @@ function getInitialView(): { view: View; slug: string } {
   if (path === '/astand') return { view: 'astand', slug: '' };
   if (path.startsWith('/receipt/')) return { view: 'receipt', slug: path.replace('/receipt/', '') };
   if (path.startsWith('/more/')) return { view: 'custom-page', slug: path.replace('/more/', '') };
-  if (path.startsWith('/event/')) return { view: 'event-page', slug: path.replace('/event/', '') };
+  if (path.startsWith('/event/')) {
+    const eventPath = path.replace('/event/', '');
+    if (eventPath.endsWith('/host')) return { view: 'bar-host', slug: eventPath.replace(/\/host$/, '') };
+    if (eventPath.endsWith('/request')) return { view: 'bar-request', slug: eventPath.replace(/\/request$/, '') };
+    return { view: 'event-page', slug: eventPath };
+  }
   if (path.startsWith('/event-receipt/')) return { view: 'event-receipt', slug: path.replace('/event-receipt/', '') };
   if (path.startsWith('/ticket/')) return { view: 'ticket-verify', slug: path.replace('/ticket/', '') };
   if (path === '/door') return { view: 'door', slug: '' };
@@ -475,7 +482,12 @@ const App: React.FC = () => {
       else if (path === '/astand') { setView('astand'); setProductSlug(''); }
       else if (path.startsWith('/receipt/')) { setView('receipt'); setProductSlug(path.replace('/receipt/', '')); }
       else if (path.startsWith('/more/')) { setView('custom-page'); setProductSlug(path.replace('/more/', '')); }
-      else if (path.startsWith('/event/')) { setView('event-page'); setProductSlug(path.replace('/event/', '')); }
+      else if (path.startsWith('/event/')) {
+        const eventPath = path.replace('/event/', '');
+        if (eventPath.endsWith('/host')) { setView('bar-host'); setProductSlug(eventPath.replace(/\/host$/, '')); }
+        else if (eventPath.endsWith('/request')) { setView('bar-request'); setProductSlug(eventPath.replace(/\/request$/, '')); }
+        else { setView('event-page'); setProductSlug(eventPath); }
+      }
       else if (path.startsWith('/event-receipt/')) { setView('event-receipt'); setProductSlug(path.replace('/event-receipt/', '')); }
       else if (path.startsWith('/ticket/')) { setView('ticket-verify'); setProductSlug(path.replace('/ticket/', '')); }
       else if (path === '/door') { setView('door'); setProductSlug(''); }
@@ -544,6 +556,22 @@ const App: React.FC = () => {
     return (
       <Suspense fallback={<div className="min-h-screen bg-stone-950 flex items-center justify-center"><div className="text-stone-400">Loading...</div></div>}>
         <DoorPageComponent />
+      </Suspense>
+    );
+  }
+
+  if (view === 'bar-request') {
+    return (
+      <Suspense fallback={<div className="min-h-screen bg-[#F9F8F4] flex items-center justify-center"><div className="text-stone-500">Loading...</div></div>}>
+        <BarRequestPageComponent slug={productSlug} />
+      </Suspense>
+    );
+  }
+
+  if (view === 'bar-host') {
+    return (
+      <Suspense fallback={<div className="min-h-screen bg-stone-950 flex items-center justify-center"><div className="text-stone-400">Loading...</div></div>}>
+        <BarHostPageComponent slug={productSlug} />
       </Suspense>
     );
   }

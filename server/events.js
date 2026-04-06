@@ -213,7 +213,7 @@ router.get('/admin/all', requireAdmin, async (req, res) => {
     const result = await pool.query(`
       SELECT e.id, e.title, e.description, e.date, e.time, e.venue, e.slug,
              e.bg_image, e.bg_type, e.bg_video, e.text_bg_color, e.text_bg_opacity,
-             e.is_published, e.show_in_header, e.created_at,
+             e.is_published, e.show_in_header, e.bar_host_pin, e.created_at,
              (SELECT COUNT(*) FROM event_packages ep WHERE ep.event_id = e.id) as package_count,
              (SELECT COUNT(*) FROM event_purchases pur WHERE pur.event_id = e.id AND pur.status = 'paid') as attendee_count
       FROM events e ORDER BY e.created_at DESC
@@ -417,6 +417,97 @@ router.get('/:id/packages', requireAdmin, async (req, res) => {
       [id]
     );
     res.json(result.rows);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
+router.patch('/:id/bar-pin', requireAdmin, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { pin } = req.body;
+    const result = await pool.query(
+      'UPDATE events SET bar_host_pin = $1 WHERE id = $2 RETURNING id, bar_host_pin',
+      [pin || '', id]
+    );
+    if (result.rows.length === 0) return res.status(404).json({ error: 'Event not found' });
+    res.json({ ok: true });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
+router.get('/by-slug/:slug/bar-pin-check', async (req, res) => {
+  try {
+    const { slug } = req.params;
+    const { pin } = req.query;
+    const result = await pool.query('SELECT bar_host_pin FROM events WHERE slug = $1', [slug]);
+    if (result.rows.length === 0) return res.status(404).json({ error: 'Event not found' });
+    const storedPin = result.rows[0].bar_host_pin || '';
+    if (!storedPin) return res.json({ valid: true });
+    res.json({ valid: pin === storedPin });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
+router.post('/by-slug/:slug/bar-request', async (req, res) => {
+  try {
+    const { slug } = req.params;
+    const { table_number, message } = req.body;
+    if (!table_number || !message) return res.status(400).json({ error: 'Table number and message are required' });
+    const eventResult = await pool.query('SELECT id FROM events WHERE slug = $1 AND is_published = true', [slug]);
+    if (eventResult.rows.length === 0) return res.status(404).json({ error: 'Event not found' });
+    const eventId = eventResult.rows[0].id;
+    const result = await pool.query(
+      'INSERT INTO bar_requests (event_id, table_number, message, status) VALUES ($1, $2, $3, $4) RETURNING *',
+      [eventId, table_number.toString().trim(), message.toString().trim(), 'pending']
+    );
+    res.json(result.rows[0]);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
+router.get('/by-slug/:slug/bar-requests', async (req, res) => {
+  try {
+    const { slug } = req.params;
+    const { pin } = req.query;
+    const eventResult = await pool.query('SELECT id, bar_host_pin FROM events WHERE slug = $1', [slug]);
+    if (eventResult.rows.length === 0) return res.status(404).json({ error: 'Event not found' });
+    const event = eventResult.rows[0];
+    const storedPin = event.bar_host_pin || '';
+    if (storedPin && pin !== storedPin) return res.status(403).json({ error: 'Invalid PIN' });
+    const result = await pool.query(
+      'SELECT * FROM bar_requests WHERE event_id = $1 ORDER BY created_at DESC',
+      [event.id]
+    );
+    res.json(result.rows);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
+router.patch('/by-slug/:slug/bar-requests/:reqId', async (req, res) => {
+  try {
+    const { slug, reqId } = req.params;
+    const { pin, status } = req.body;
+    const eventResult = await pool.query('SELECT id, bar_host_pin FROM events WHERE slug = $1', [slug]);
+    if (eventResult.rows.length === 0) return res.status(404).json({ error: 'Event not found' });
+    const event = eventResult.rows[0];
+    const storedPin = event.bar_host_pin || '';
+    if (storedPin && pin !== storedPin) return res.status(403).json({ error: 'Invalid PIN' });
+    const result = await pool.query(
+      'UPDATE bar_requests SET status = $1 WHERE id = $2 AND event_id = $3 RETURNING *',
+      [status || 'done', reqId, event.id]
+    );
+    if (result.rows.length === 0) return res.status(404).json({ error: 'Request not found' });
+    res.json(result.rows[0]);
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: 'Server error' });
