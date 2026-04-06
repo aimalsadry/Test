@@ -1,0 +1,65 @@
+/* 
+  Global Smooth Scrolling
+  Applies to the root and all potentially scrollable containers 
+*/
+html, 
+body, 
+* {
+  scroll-behavior: smooth !important;
+}
+
+/* 
+  Custom Themed Scrollbar 
+  Designed to match the Aimal.fi Nobel Gold and Stone aesthetic
+*/
+
+/* Webkit browsers (Chrome, Safari, Edge) */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: #F9F8F4; /* Nobel Cream */
+}
+
+::-webkit-scrollbar-thumb {
+  background: #C5A059; /* Nobel Gold */
+  border-radius: 10px;
+  border: 2px solid #F9F8F4; /* Creating a padding effect */
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #A6874B; /* Darker Gold on hover */
+}
+
+/* Firefox */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: #C5A059 #F9F8F4;
+}
+
+/* Standard Animations used in the App */
+.animate-fade-in {
+  animation: fadeIn 0.8s ease-out forwards;
+}
+
+.animate-fade-in-up {
+  animation: fadeInUp 1s ease-out forwards;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}

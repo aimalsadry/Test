@@ -1,0 +1,53 @@
+modules = ["nodejs-20", "web", "postgresql-16"]
+[agent]
+expertMode = true
+
+[nix]
+channel = "stable-25_05"
+
+[workflows]
+runButton = "Project"
+
+[[workflows.workflow]]
+name = "Project"
+mode = "parallel"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "Start application"
+
+[[workflows.workflow]]
+name = "Start application"
+author = "agent"
+
+[workflows.workflow.metadata]
+outputType = "webview"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "npm run dev"
+waitForPort = 5000
+
+[[ports]]
+localPort = 3001
+externalPort = 3001
+
+[[ports]]
+localPort = 5000
+externalPort = 80
+
+[[ports]]
+localPort = 5001
+externalPort = 3002
+
+[deployment]
+deploymentTarget = "autoscale"
+build = ["npm", "run", "build"]
+run = ["node", "server.js"]
+
+[userenv]
+
+[userenv.shared]
+VITE_GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbw07UfPnXQU1kvtfYAbLBy5SNG7nO_VhdM5Aq1Mr2rlIS6wyarDmW_QSke82X0aKHyvjA/exec"
+VITE_GOOGLE_INVESTMENT_SCRIPT_URL = "https://script.google.com/macros/s/AKfycby-ojOMyZCVNdqEGRjyWcVBYrLtG3zYSjdoPIy-dikcZhNbBWb_ysYM1j_TMbzeJYG-ug/exec"
