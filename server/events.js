@@ -108,13 +108,14 @@ router.post('/:id/purchase', async (req, res) => {
             checkout_reference: checkoutReference,
             amount: amountPaid,
             currency: 'EUR',
+            merchant_code: 'MC6UAALG',
             description: `${eventResult.rows[0].title} — ${pkg.name} x${qty}`,
             return_url: returnUrl,
           }),
         });
         if (sumupRes.ok) {
           const sumupData = await sumupRes.json();
-          checkoutUrl = sumupData.checkout_url;
+          checkoutUrl = `https://pay.sumup.com/b2c/${sumupData.id}`;
           await pool.query(
             'UPDATE event_purchases SET sumup_checkout_ref = $1, sumup_checkout_id = $2 WHERE id = $3',
             [checkoutReference, sumupData.id, purchase.id]
