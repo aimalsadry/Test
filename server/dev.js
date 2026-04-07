@@ -30,7 +30,7 @@ app.use(session({
   resave: false,
   saveUninitialized: false,
   cookie: {
-    maxAge: 30 * 60 * 1000,
+    maxAge: 8 * 60 * 60 * 1000,
     httpOnly: true,
     sameSite: 'lax',
     secure: false,
@@ -40,7 +40,7 @@ app.use(session({
 app.use((req, res, next) => {
   if (req.session.adminId && req.session.lastActivity) {
     const inactiveTime = Date.now() - req.session.lastActivity;
-    if (inactiveTime > 30 * 60 * 1000) {
+    if (inactiveTime > 8 * 60 * 60 * 1000) {
       req.session.destroy(() => {});
       return res.status(401).json({ error: 'Session expired due to inactivity' });
     }

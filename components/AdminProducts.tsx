@@ -47,7 +47,10 @@ async function apiCall(url: string, options?: RequestInit) {
     credentials: 'include',
     headers: { 'Content-Type': 'application/json', ...options?.headers },
   });
-  if (res.status === 401) throw new Error('Session expired');
+  if (res.status === 401) {
+    window.location.hash = '#/admin';
+    throw new Error('Session expired');
+  }
   return res;
 }
 
@@ -845,8 +848,8 @@ const ProductCard: React.FC<{ product: Product; onRefresh: () => void; onDelete:
         setDuplicateMsg(d.error || 'Failed to duplicate');
         setTimeout(() => setDuplicateMsg(''), 3000);
       }
-    } catch {
-      setDuplicateMsg('Failed to duplicate');
+    } catch (err: any) {
+      setDuplicateMsg(err?.message || 'Failed to duplicate');
       setTimeout(() => setDuplicateMsg(''), 3000);
     }
     setDuplicating(false);
