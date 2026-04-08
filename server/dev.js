@@ -18,7 +18,7 @@ import { initDb } from './initDb.js';
 const app = express();
 const PgSession = connectPgSimple(session);
 
-app.use(express.json({ limit: '20mb' }));
+app.use(express.json({ limit: '150mb' }));
 
 app.use(session({
   store: new PgSession({
