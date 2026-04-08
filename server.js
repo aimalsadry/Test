@@ -21,7 +21,7 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const app = express();
 const PgSession = connectPgSimple(session);
 
-app.use(express.json({ limit: '20mb' }));
+app.use(express.json({ limit: '150mb' }));
 
 const isProduction = process.env.NODE_ENV === 'production';
 app.set('trust proxy', 1);
