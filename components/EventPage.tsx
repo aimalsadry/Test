@@ -266,6 +266,13 @@ const EventPage: React.FC<Props> = ({ slug, onNavigateHome }) => {
   const [modalOpen, setModalOpen] = useState(false);
   const videoRef = useRef<HTMLVideoElement>(null);
 
+  const playVideo = useCallback(() => {
+    const v = videoRef.current;
+    if (!v) return;
+    v.muted = true;
+    v.play().catch(() => {});
+  }, []);
+
   const load = useCallback(async () => {
     try {
       const res = await fetch(`/api/events/by-slug/${slug}`);
@@ -285,6 +292,13 @@ const EventPage: React.FC<Props> = ({ slug, onNavigateHome }) => {
     if (event) document.title = `${event.title} — Aimal.fi`;
     return () => { document.title = 'Aimal.fi Advisory'; };
   }, [event]);
+
+  useEffect(() => {
+    if (event?.bg_type === 'video' && event?.bg_video) {
+      const t = setTimeout(playVideo, 100);
+      return () => clearTimeout(t);
+    }
+  }, [event, playVideo]);
 
   if (loading) {
     return (
@@ -330,6 +344,9 @@ const EventPage: React.FC<Props> = ({ slug, onNavigateHome }) => {
           muted
           loop
           playsInline
+          preload="auto"
+          onCanPlay={playVideo}
+          onEnded={playVideo}
           className="fixed inset-0 w-full h-full object-cover z-0 pointer-events-none"
         />
       )}
