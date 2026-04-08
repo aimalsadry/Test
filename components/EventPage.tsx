@@ -78,6 +78,7 @@ const CheckoutModal: React.FC<{
   quantity: number;
   onClose: () => void;
 }> = ({ event, selectedPackage, quantity, onClose }) => {
+  const { t } = useLanguage();
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [phone, setPhone] = useState('');
@@ -89,7 +90,7 @@ const CheckoutModal: React.FC<{
   const handlePay = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!name.trim() || !email.trim() || !phone.trim()) {
-      setError('All fields are required');
+      setError(t('ev_fields_required'));
       return;
     }
     setLoading(true);
@@ -101,14 +102,14 @@ const CheckoutModal: React.FC<{
         body: JSON.stringify({ buyer_name: name, buyer_email: email, buyer_phone: phone, package_id: selectedPackage.id, quantity }),
       });
       const data = await res.json();
-      if (!res.ok) { setError(data.error || 'Purchase failed'); setLoading(false); return; }
+      if (!res.ok) { setError(data.error || t('ev_connection_error')); setLoading(false); return; }
       if (data.checkoutUrl) {
         window.location.href = data.checkoutUrl;
       } else {
         window.location.href = `/event-receipt/${data.purchaseId}?token=${data.receiptToken}`;
       }
     } catch {
-      setError('Connection error. Please try again.');
+      setError(t('ev_connection_error'));
       setLoading(false);
     }
   };
@@ -117,16 +118,16 @@ const CheckoutModal: React.FC<{
     <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-end sm:items-center justify-center sm:p-4">
       <div className="bg-white rounded-t-2xl sm:rounded-2xl shadow-2xl w-full sm:max-w-md max-h-[90dvh] overflow-y-auto flex flex-col">
         <div className="p-5 border-b border-stone-100 flex justify-between items-center sticky top-0 bg-white rounded-t-2xl z-10">
-          <h2 className="font-serif text-xl text-stone-900">Complete Purchase</h2>
+          <h2 className="font-serif text-xl text-stone-900">{t('ev_complete_purchase')}</h2>
           <button onClick={onClose} className="p-2 hover:bg-stone-100 rounded-lg text-stone-500"><X size={20} /></button>
         </div>
         <div className="p-5 bg-stone-50 border-b border-stone-100">
-          <p className="text-[10px] uppercase font-bold tracking-widest text-stone-400 mb-2">Order Summary</p>
+          <p className="text-[10px] uppercase font-bold tracking-widest text-stone-400 mb-2">{t('ev_order_summary')}</p>
           <div className="flex justify-between items-center">
             <div>
               <p className="font-medium text-stone-900">{selectedPackage.name}</p>
               {selectedPackage.description && <p className="text-sm text-stone-500">{selectedPackage.description}</p>}
-              <p className="text-sm text-stone-500 mt-0.5">€{parseFloat(selectedPackage.price).toFixed(2)} × {quantity} ticket</p>
+              <p className="text-sm text-stone-500 mt-0.5">€{parseFloat(selectedPackage.price).toFixed(2)} × {quantity} {t('ev_ticket')}</p>
             </div>
             <p className="font-serif text-2xl text-stone-900">€{total.toFixed(2)}</p>
           </div>
@@ -138,24 +139,24 @@ const CheckoutModal: React.FC<{
             </div>
           )}
           <div>
-            <label className="text-[10px] uppercase font-bold tracking-widest text-stone-400 block mb-1">Full Name *</label>
+            <label className="text-[10px] uppercase font-bold tracking-widest text-stone-400 block mb-1">{t('ev_full_name')} *</label>
             <input data-testid="input-buyer-name" value={name} onChange={e => setName(e.target.value)} required
-              className="w-full px-4 py-3 bg-stone-50 border border-stone-200 rounded-lg focus:outline-none focus:border-stone-400 text-stone-800" placeholder="Your full name" />
+              className="w-full px-4 py-3 bg-stone-50 border border-stone-200 rounded-lg focus:outline-none focus:border-stone-400 text-stone-800" placeholder={t('ev_name_placeholder')} />
           </div>
           <div>
-            <label className="text-[10px] uppercase font-bold tracking-widest text-stone-400 block mb-1">Email Address *</label>
+            <label className="text-[10px] uppercase font-bold tracking-widest text-stone-400 block mb-1">{t('ev_email')} *</label>
             <input data-testid="input-buyer-email" type="email" value={email} onChange={e => setEmail(e.target.value)} required
               className="w-full px-4 py-3 bg-stone-50 border border-stone-200 rounded-lg focus:outline-none focus:border-stone-400 text-stone-800" placeholder="you@example.com" />
           </div>
           <div>
-            <label className="text-[10px] uppercase font-bold tracking-widest text-stone-400 block mb-1">Phone Number *</label>
+            <label className="text-[10px] uppercase font-bold tracking-widest text-stone-400 block mb-1">{t('ev_phone')} *</label>
             <input data-testid="input-buyer-phone" type="tel" value={phone} onChange={e => setPhone(e.target.value)} required
               className="w-full px-4 py-3 bg-stone-50 border border-stone-200 rounded-lg focus:outline-none focus:border-stone-400 text-stone-800" placeholder="+358 40 000 0000" />
           </div>
-          <p className="text-xs text-stone-400">Your QR code tickets will be generated after payment. One QR code per ticket.</p>
+          <p className="text-xs text-stone-400">{t('ev_qr_generated')}</p>
           <button data-testid="button-pay" type="submit" disabled={loading}
             className="w-full py-4 bg-stone-900 text-white rounded-xl font-bold uppercase tracking-[0.15em] text-sm hover:bg-stone-800 transition-colors disabled:opacity-60 flex items-center justify-center gap-2">
-            {loading ? 'Processing...' : `Pay €${total.toFixed(2)}`}
+            {loading ? t('ev_processing') : `${t('ev_pay')} €${total.toFixed(2)}`}
           </button>
         </form>
       </div>
@@ -164,6 +165,7 @@ const CheckoutModal: React.FC<{
 };
 
 const ImageGallery: React.FC<{ images: EventImage[] }> = ({ images }) => {
+  const { t } = useLanguage();
   const [current, setCurrent] = useState(0);
   const [lightboxOpen, setLightboxOpen] = useState(false);
   if (images.length === 0) return null;
@@ -177,8 +179,8 @@ const ImageGallery: React.FC<{ images: EventImage[] }> = ({ images }) => {
   return (
     <div className="mt-12 w-full">
       <div className="flex items-center justify-between mb-4">
-        <h2 className="text-white font-serif text-2xl">Photos</h2>
-        <span className="text-white/40 text-xs">{images.length} photo{images.length !== 1 ? 's' : ''}</span>
+        <h2 className="text-white font-serif text-2xl">{t('ev_photos')}</h2>
+        <span className="text-white/40 text-xs">{images.length} {t('ev_photos').toLowerCase()}</span>
       </div>
       {images.length === 1 ? (
         <div className="rounded-2xl overflow-hidden cursor-pointer" onClick={() => { setCurrent(0); setLightboxOpen(true); }}>
@@ -236,7 +238,7 @@ const CountdownUnit: React.FC<{ value: number; label: string }> = ({ value, labe
 );
 
 const EventPage: React.FC<Props> = ({ slug, onNavigateHome }) => {
-  const { language, setLanguage } = useLanguage();
+  const { language, setLanguage, t } = useLanguage();
   const currentLang = languages.find(l => l.code === language);
   const [langOpen, setLangOpen] = useState(false);
   const langRef = useRef<HTMLDivElement>(null);
@@ -277,12 +279,12 @@ const EventPage: React.FC<Props> = ({ slug, onNavigateHome }) => {
   const load = useCallback(async () => {
     try {
       const res = await fetch(`/api/events/by-slug/${slug}`);
-      if (!res.ok) { setError('Event not found'); setLoading(false); return; }
+      if (!res.ok) { setError(t('ev_not_found')); setLoading(false); return; }
       const data = await res.json();
       setEvent(data);
       if (data.packages?.length > 0) setSelectedPkg(data.packages[0]);
     } catch {
-      setError('Failed to load event');
+      setError(t('ev_not_found'));
     }
     setLoading(false);
   }, [slug]);
@@ -330,8 +332,8 @@ const EventPage: React.FC<Props> = ({ slug, onNavigateHome }) => {
   if (error || !event) {
     return (
       <div className="min-h-screen bg-stone-950 flex flex-col items-center justify-center gap-4">
-        <p className="text-white text-lg">{error || 'Event not found'}</p>
-        <button onClick={onNavigateHome} className="px-6 py-3 bg-white text-stone-900 rounded-full font-bold text-sm hover:bg-stone-100">Back to Home</button>
+        <p className="text-white text-lg">{error || t('ev_not_found')}</p>
+        <button onClick={onNavigateHome} className="px-6 py-3 bg-white text-stone-900 rounded-full font-bold text-sm hover:bg-stone-100">{t('ev_back_home')}</button>
       </div>
     );
   }
@@ -377,7 +379,7 @@ const EventPage: React.FC<Props> = ({ slug, onNavigateHome }) => {
         <nav className="flex justify-between items-center px-6 pt-8 pb-4">
           <button onClick={onNavigateHome}
             className="text-white/70 hover:text-white text-xs font-bold uppercase tracking-widest transition-colors flex items-center gap-1">
-            ← Aimal.fi
+            {t('ev_back_home')}
           </button>
 
           {/* Language selector */}
@@ -411,7 +413,7 @@ const EventPage: React.FC<Props> = ({ slug, onNavigateHome }) => {
             )}
           </div>
 
-          <span className="text-white/40 text-[10px] uppercase tracking-widest font-bold">Event</span>
+          <span className="text-white/40 text-[10px] uppercase tracking-widest font-bold">{t('ev_event_label')}</span>
         </nav>
 
         {/* ── HERO ── full-screen, centred on the video ── */}
@@ -420,7 +422,7 @@ const EventPage: React.FC<Props> = ({ slug, onNavigateHome }) => {
           {/* Live badge */}
           <div className="inline-flex items-center gap-2 mb-6 px-4 py-1.5 rounded-full border border-white/20 backdrop-blur-md bg-white/10 text-white/80 text-[10px] tracking-[0.3em] uppercase font-bold">
             <span className="w-1.5 h-1.5 rounded-full bg-amber-400 animate-pulse" />
-            Live Event
+            {t('ev_live_event')}
           </div>
 
           {/* Floating metadata badges */}
@@ -459,15 +461,15 @@ const EventPage: React.FC<Props> = ({ slug, onNavigateHome }) => {
           {/* Countdown */}
           {event.date && countdown.valid && !countdown.expired && (
             <div className="mb-10">
-              <p className="text-white/40 text-[10px] uppercase tracking-[0.25em] font-bold mb-4">Event starts in</p>
+              <p className="text-white/40 text-[10px] uppercase tracking-[0.25em] font-bold mb-4">{t('ev_starts_in')}</p>
               <div className="flex items-start gap-3 md:gap-5">
-                <CountdownUnit value={countdown.days} label="Days" />
+                <CountdownUnit value={countdown.days} label={t('ev_days')} />
                 <span className="text-white/30 text-2xl font-bold mt-3">:</span>
-                <CountdownUnit value={countdown.hours} label="Hours" />
+                <CountdownUnit value={countdown.hours} label={t('ev_hours')} />
                 <span className="text-white/30 text-2xl font-bold mt-3">:</span>
-                <CountdownUnit value={countdown.minutes} label="Min" />
+                <CountdownUnit value={countdown.minutes} label={t('ev_min')} />
                 <span className="text-white/30 text-2xl font-bold mt-3">:</span>
-                <CountdownUnit value={countdown.seconds} label="Sec" />
+                <CountdownUnit value={countdown.seconds} label={t('ev_sec')} />
               </div>
             </div>
           )}
@@ -477,7 +479,7 @@ const EventPage: React.FC<Props> = ({ slug, onNavigateHome }) => {
             <button
               onClick={() => ticketRef.current?.scrollIntoView({ behavior: 'smooth' })}
               className="inline-flex items-center gap-2 px-8 py-4 bg-amber-500 hover:bg-amber-400 text-stone-900 font-bold uppercase tracking-[0.15em] text-sm rounded-full transition-all shadow-xl shadow-amber-500/30 hover:shadow-amber-400/40 hover:scale-105">
-              <Ticket size={16} /> Get Tickets
+              <Ticket size={16} /> {t('ev_get_tickets')}
             </button>
           )}
         </section>
@@ -489,8 +491,8 @@ const EventPage: React.FC<Props> = ({ slug, onNavigateHome }) => {
 
               {/* Section header */}
               <div className="text-center mb-8">
-                <h2 className="text-white font-serif text-3xl md:text-4xl mb-2">Choose Your Ticket</h2>
-                <p className="text-white/40 text-sm">Select a package to continue</p>
+                <h2 className="text-white font-serif text-3xl md:text-4xl mb-2">{t('ev_choose_ticket')}</h2>
+                <p className="text-white/40 text-sm">{t('ev_select_package')}</p>
               </div>
 
               {/* Package cards — frosted glass */}
@@ -510,7 +512,7 @@ const EventPage: React.FC<Props> = ({ slug, onNavigateHome }) => {
                       {/* Tier label */}
                       <div className="flex items-center justify-between mb-4">
                         <span className="text-[10px] uppercase tracking-[0.2em] font-bold text-white/40">
-                          Tier {idx + 1}
+                          {t('ev_tier')} {idx + 1}
                         </span>
                         <div className={`w-4 h-4 rounded-full border-2 transition-all ${isSelected ? 'bg-amber-400 border-amber-400' : 'border-white/25'}`} />
                       </div>
@@ -520,7 +522,7 @@ const EventPage: React.FC<Props> = ({ slug, onNavigateHome }) => {
 
                       <div className="mt-auto">
                         <p className="text-amber-400 font-serif text-4xl font-bold">€{parseFloat(pkg.price).toFixed(2)}</p>
-                        <p className="text-white/35 text-xs mt-1">per ticket</p>
+                        <p className="text-white/35 text-xs mt-1">{t('ev_per_ticket')}</p>
                       </div>
                     </button>
                   );
@@ -532,11 +534,11 @@ const EventPage: React.FC<Props> = ({ slug, onNavigateHome }) => {
                 <div className="rounded-2xl backdrop-blur-md bg-white/[0.07] border border-white/12 p-6 md:p-8">
                   <div className="flex items-center justify-between mb-6">
                     <div>
-                      <p className="text-white/50 text-xs uppercase tracking-widest font-bold mb-1">Selected</p>
+                      <p className="text-white/50 text-xs uppercase tracking-widest font-bold mb-1">{t('ev_selected')}</p>
                       <p className="text-white font-semibold">{selectedPkg.name}</p>
                     </div>
                     <div className="text-right">
-                      <p className="text-white/50 text-xs uppercase tracking-widest font-bold mb-1">Total</p>
+                      <p className="text-white/50 text-xs uppercase tracking-widest font-bold mb-1">{t('ev_total')}</p>
                       <p className="text-amber-400 font-serif text-4xl font-bold">€{total.toFixed(2)}</p>
                     </div>
                   </div>
@@ -552,13 +554,13 @@ const EventPage: React.FC<Props> = ({ slug, onNavigateHome }) => {
                     }}
                     className="w-full py-4 bg-amber-500 text-stone-900 font-bold uppercase tracking-[0.15em] text-sm rounded-xl hover:bg-amber-400 transition-all shadow-lg shadow-amber-500/25 hover:shadow-amber-400/35 flex items-center justify-center gap-2">
                     <Ticket size={16} />
-                    Buy 1 Ticket — €{total.toFixed(2)}
+                    {t('ev_buy_ticket')} — €{total.toFixed(2)}
                     {selectedPkg?.payment_link && <span className="ml-1 text-[10px] opacity-60">↗</span>}
                   </button>
 
                   {!selectedPkg?.payment_link && (
                     <p className="text-white/25 text-xs text-center mt-3 flex items-center justify-center gap-1">
-                      <Music size={11} /> Each ticket includes a unique QR code for entry
+                      <Music size={11} /> {t('ev_qr_note')}
                     </p>
                   )}
                 </div>
@@ -570,7 +572,7 @@ const EventPage: React.FC<Props> = ({ slug, onNavigateHome }) => {
         {event.packages.length === 0 && (
           <div className="text-center text-white/40 py-12 px-4">
             <Ticket size={32} className="mx-auto mb-3 opacity-30" />
-            <p>Tickets not yet available. Check back soon.</p>
+            <p>{t('ev_no_tickets')}</p>
           </div>
         )}
 
@@ -586,7 +588,7 @@ const EventPage: React.FC<Props> = ({ slug, onNavigateHome }) => {
         {/* Footer strip */}
         <div className="text-center pb-8">
           <button onClick={onNavigateHome} className="text-white/30 hover:text-white/60 text-xs uppercase tracking-widest font-bold transition-colors">
-            ← Back to Aimal.fi
+            {t('ev_back_home')}
           </button>
         </div>
       </div>
