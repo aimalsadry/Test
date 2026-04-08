@@ -51,3 +51,7 @@ run = ["node", "server.js"]
 [userenv.shared]
 VITE_GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbw07UfPnXQU1kvtfYAbLBy5SNG7nO_VhdM5Aq1Mr2rlIS6wyarDmW_QSke82X0aKHyvjA/exec"
 VITE_GOOGLE_INVESTMENT_SCRIPT_URL = "https://script.google.com/macros/s/AKfycby-ojOMyZCVNdqEGRjyWcVBYrLtG3zYSjdoPIy-dikcZhNbBWb_ysYM1j_TMbzeJYG-ug/exec"
+
+[postMerge]
+path = "scripts/post-merge.sh"
+timeoutMs = 20000
