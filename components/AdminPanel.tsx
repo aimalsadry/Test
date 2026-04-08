@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { X, LogOut, Calendar, Clock, Users, BarChart3, Settings, ChevronLeft, ChevronRight, Search, Download, Check, XCircle, AlertCircle, Eye, Trash2, Plus, Package, FileText, ClipboardList, Menu, Upload, User, Ticket, ScanLine } from 'lucide-react';
+import { X, LogOut, Calendar, Clock, Users, BarChart3, Settings, ChevronLeft, ChevronRight, Search, Download, Check, XCircle, AlertCircle, Eye, Trash2, Plus, Package, FileText, ClipboardList, Menu, Upload, User, Ticket, ScanLine, Mail } from 'lucide-react';
 import ProductsView from './AdminProducts';
 import PagesView from './AdminPages';
 import FormsView from './AdminForms';
@@ -53,6 +53,13 @@ interface BlockedDate {
   id: number;
   blocked_date: string;
   reason: string;
+}
+
+interface EmailTemplate {
+  id: number;
+  template_type: string;
+  subject: string;
+  body: string;
 }
 
 const DAY_NAMES = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
@@ -615,24 +622,51 @@ const SettingsView: React.FC = () => {
   const [profileImage, setProfileImage] = useState<string | null>(null);
   const [profileImgSaving, setProfileImgSaving] = useState(false);
   const [profileImgMsg, setProfileImgMsg] = useState('');
+  const [emailTemplates, setEmailTemplates] = useState<EmailTemplate[]>([]);
+  const [activeEmailType, setActiveEmailType] = useState('confirmation');
+  const [emailSaving, setEmailSaving] = useState(false);
+  const [emailMsg, setEmailMsg] = useState('');
 
   useEffect(() => {
     (async () => {
       try {
-        const [rulesRes, blockedRes, settingsRes, profileRes] = await Promise.all([
+        const [rulesRes, blockedRes, settingsRes, profileRes, emailRes] = await Promise.all([
           apiCall(`${API}/settings/availability`),
           apiCall(`${API}/settings/blocked-dates`),
           apiCall(`${API}/settings/booking-settings`),
           apiCall(`${API}/settings/profile-image`),
+          apiCall(`${API}/settings/email-templates`),
         ]);
         setRules(await rulesRes.json());
         setBlockedDates(await blockedRes.json());
         setSettings(await settingsRes.json());
         const profileData = await profileRes.json();
         setProfileImage(profileData.image || null);
+        setEmailTemplates(await emailRes.json());
       } catch { }
     })();
   }, []);
+
+  const getTemplate = (type: string) => emailTemplates.find(t => t.template_type === type) || { id: 0, template_type: type, subject: '', body: '' };
+
+  const updateTemplate = (type: string, field: 'subject' | 'body', value: string) => {
+    setEmailTemplates(prev => prev.map(t => t.template_type === type ? { ...t, [field]: value } : t));
+  };
+
+  const saveEmailTemplate = async (type: string) => {
+    const tpl = getTemplate(type);
+    setEmailSaving(true);
+    setEmailMsg('');
+    try {
+      const res = await apiCall(`${API}/settings/email-templates/${type}`, {
+        method: 'PUT',
+        body: JSON.stringify({ subject: tpl.subject, body: tpl.body }),
+      });
+      if (res.ok) setEmailMsg('Template saved successfully');
+      else setEmailMsg('Failed to save');
+    } catch { setEmailMsg('Error saving'); }
+    setEmailSaving(false);
+  };
 
   const handleProfileImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -727,6 +761,7 @@ const SettingsView: React.FC = () => {
     { id: 'hours', label: 'Working Hours', icon: <Clock size={16} /> },
     { id: 'blocked', label: 'Holidays', icon: <Calendar size={16} /> },
     { id: 'booking', label: 'Booking Rules', icon: <Settings size={16} /> },
+    { id: 'emails', label: 'Email Templates', icon: <Mail size={16} /> },
     { id: 'profile', label: 'Profile Image', icon: <User size={16} /> },
     { id: 'password', label: 'Password', icon: <Users size={16} /> },
   ];
@@ -857,6 +892,50 @@ const SettingsView: React.FC = () => {
         </div>
       )}
 
+
+      {activeTab === 'emails' && (
+        <div className="space-y-4">
+          <div className="p-3 bg-amber-50 border border-amber-100 rounded-lg text-xs text-amber-800">
+            Available variables: <code className="font-mono font-bold">{'{first_name}'}</code> <code className="font-mono font-bold">{'{last_name}'}</code> <code className="font-mono font-bold">{'{date}'}</code> <code className="font-mono font-bold">{'{time}'}</code> <code className="font-mono font-bold">{'{reason}'}</code> (decline only)
+          </div>
+          <div className="flex gap-2">
+            {['confirmation', 'decline', 'cancellation'].map(type => (
+              <button key={type} onClick={() => { setActiveEmailType(type); setEmailMsg(''); }}
+                className={`px-4 py-2 rounded-lg text-xs font-bold uppercase tracking-wider capitalize transition-colors ${activeEmailType === type ? 'bg-stone-900 text-white' : 'bg-stone-100 text-stone-600 hover:bg-stone-200'}`}>
+                {type}
+              </button>
+            ))}
+          </div>
+          {['confirmation', 'decline', 'cancellation'].map(type => {
+            const tpl = getTemplate(type);
+            return activeEmailType === type ? (
+              <div key={type} className="space-y-3">
+                <div>
+                  <label className="text-[10px] uppercase font-bold tracking-widest text-stone-400 block mb-1">Subject Line</label>
+                  <input type="text" value={tpl.subject}
+                    onChange={e => updateTemplate(type, 'subject', e.target.value)}
+                    className="w-full px-3 py-2 bg-stone-50 border border-stone-200 rounded-lg text-sm focus:outline-none focus:border-stone-400"
+                    placeholder="Email subject..." />
+                </div>
+                <div>
+                  <label className="text-[10px] uppercase font-bold tracking-widest text-stone-400 block mb-1">Email Body</label>
+                  <textarea value={tpl.body} rows={12}
+                    onChange={e => updateTemplate(type, 'body', e.target.value)}
+                    className="w-full px-3 py-2 bg-stone-50 border border-stone-200 rounded-lg text-sm font-mono focus:outline-none focus:border-stone-400 resize-y"
+                    placeholder="Email body text..." />
+                </div>
+                {emailMsg && (
+                  <p className={`text-sm font-medium ${emailMsg.includes('success') ? 'text-green-600' : 'text-red-600'}`}>{emailMsg}</p>
+                )}
+                <button onClick={() => saveEmailTemplate(type)} disabled={emailSaving}
+                  className="px-6 py-3 bg-stone-900 text-white rounded-lg text-xs font-bold uppercase tracking-wider hover:bg-stone-800 disabled:opacity-60">
+                  {emailSaving ? 'Saving...' : `Save ${type} Template`}
+                </button>
+              </div>
+            ) : null;
+          })}
+        </div>
+      )}
 
       {activeTab === 'profile' && (
         <div className="max-w-sm space-y-6">

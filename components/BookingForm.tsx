@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { X, CheckCircle2, AlertCircle, ChevronLeft, ChevronRight, Clock, Phone } from 'lucide-react';
+import { X, CheckCircle2, AlertCircle, ChevronLeft, ChevronRight, Clock, Calendar } from 'lucide-react';
 
 interface BookingFormProps {
   isOpen: boolean;
@@ -59,9 +59,11 @@ const BookingForm: React.FC<BookingFormProps> = ({ isOpen, onClose, sourcePage =
 
     const formData = new FormData(e.currentTarget);
     const body = {
-      name: formData.get('name') as string,
+      firstName: formData.get('firstName') as string,
+      lastName: formData.get('lastName') as string,
+      email: formData.get('email') as string,
       phone: formData.get('phone') as string,
-      profession: formData.get('profession') as string,
+      message: formData.get('message') as string,
       preferredDate: selectedDate,
       preferredTime: selectedTime,
       sourcePage,
@@ -114,7 +116,7 @@ const BookingForm: React.FC<BookingFormProps> = ({ isOpen, onClose, sourcePage =
   return (
     <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-stone-900/60 backdrop-blur-sm animate-fade-in">
       <div className="bg-white w-full max-w-lg rounded-2xl shadow-2xl overflow-hidden relative border border-stone-200 max-h-[90vh] overflow-y-auto">
-        <button onClick={resetAndClose} className="absolute top-4 right-4 p-2 text-stone-400 hover:text-stone-900 transition-colors z-10">
+        <button data-testid="button-close-booking" onClick={resetAndClose} className="absolute top-4 right-4 p-2 text-stone-400 hover:text-stone-900 transition-colors z-10">
           <X size={24} />
         </button>
 
@@ -124,8 +126,9 @@ const BookingForm: React.FC<BookingFormProps> = ({ isOpen, onClose, sourcePage =
               <div className="w-20 h-20 bg-green-100 text-green-600 rounded-full flex items-center justify-center mx-auto mb-6">
                 <CheckCircle2 size={40} />
               </div>
-              <h2 className="font-serif text-3xl text-stone-900 mb-4">Call Booked!</h2>
-              <p className="text-stone-600 mb-8">Your 10-minute call has been scheduled. We will contact you at the chosen time.</p>
+              <h2 className="font-serif text-3xl text-stone-900 mb-4">Request Received</h2>
+              <p className="text-stone-600 mb-2">Your meeting request has been submitted.</p>
+              <p className="text-stone-500 text-sm mb-8">We will review it and send you a confirmation by email.</p>
               <button onClick={resetAndClose} className="px-8 py-3 border border-stone-200 rounded-full text-stone-600 hover:bg-stone-50 transition-colors font-medium">
                 Close
               </button>
@@ -134,11 +137,11 @@ const BookingForm: React.FC<BookingFormProps> = ({ isOpen, onClose, sourcePage =
             <>
               <div className="flex items-center gap-3 mb-2">
                 <div className="p-2 bg-stone-100 rounded-full">
-                  <Phone size={18} className="text-stone-700" />
+                  <Calendar size={18} className="text-stone-700" />
                 </div>
-                <h2 className="font-serif text-3xl text-stone-900">Book a Call</h2>
+                <h2 className="font-serif text-3xl text-stone-900">Book a Meeting</h2>
               </div>
-              <p className="text-stone-500 mb-6 text-sm">Select a date and time for your 10-minute phone call.</p>
+              <p className="text-stone-500 mb-6 text-sm">Select a date and time, then fill in your details.</p>
 
               <div className="flex items-center gap-4 mb-6">
                 <div className={`flex items-center gap-2 text-xs font-bold uppercase tracking-wider ${step >= 1 ? 'text-stone-900' : 'text-stone-300'}`}>
@@ -177,6 +180,7 @@ const BookingForm: React.FC<BookingFormProps> = ({ isOpen, onClose, sourcePage =
 
                       return (
                         <button key={day} disabled={isPast}
+                          data-testid={`button-day-${dateStr}`}
                           onClick={() => setSelectedDate(dateStr)}
                           className={`p-2 rounded-lg text-sm transition-all ${isPast ? 'text-stone-300 cursor-not-allowed' : isSelected ? 'bg-stone-900 text-white' : isToday ? 'bg-amber-50 border border-amber-200 hover:bg-amber-100' : 'hover:bg-stone-100'}`}>
                           {day}
@@ -198,6 +202,7 @@ const BookingForm: React.FC<BookingFormProps> = ({ isOpen, onClose, sourcePage =
                         <div className="grid grid-cols-3 sm:grid-cols-4 gap-2">
                           {slots.map(slot => (
                             <button key={slot.start} onClick={() => setSelectedTime(slot.start)}
+                              data-testid={`button-slot-${slot.start}`}
                               className={`px-3 py-2 rounded-lg text-sm font-medium transition-all flex items-center justify-center gap-1 ${selectedTime === slot.start ? 'bg-stone-900 text-white' : 'bg-stone-50 border border-stone-200 hover:border-stone-400 text-stone-700'}`}>
                               <Clock size={12} /> {slot.start}
                             </button>
@@ -208,7 +213,7 @@ const BookingForm: React.FC<BookingFormProps> = ({ isOpen, onClose, sourcePage =
                   )}
 
                   {selectedDate && selectedTime && (
-                    <button onClick={() => setStep(2)}
+                    <button onClick={() => setStep(2)} data-testid="button-continue-step2"
                       className="w-full mt-6 py-4 bg-stone-900 text-white rounded-lg font-bold uppercase tracking-[0.2em] text-xs hover:bg-stone-800 transition-colors">
                       Continue
                     </button>
@@ -223,7 +228,7 @@ const BookingForm: React.FC<BookingFormProps> = ({ isOpen, onClose, sourcePage =
                       <p className="text-sm text-stone-900 font-medium">
                         {new Date(selectedDate + 'T00:00:00').toLocaleDateString('en-GB', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' })}
                       </p>
-                      <p className="text-stone-500 text-sm">{selectedTime} · 10 min call</p>
+                      <p className="text-stone-500 text-sm">{selectedTime}</p>
                     </div>
                     <button onClick={() => setStep(1)} className="text-xs text-stone-500 hover:text-stone-900 underline">Change</button>
                   </div>
@@ -235,24 +240,41 @@ const BookingForm: React.FC<BookingFormProps> = ({ isOpen, onClose, sourcePage =
                   )}
 
                   <form onSubmit={handleSubmit} className="space-y-4">
+                    <div className="grid grid-cols-2 gap-3">
+                      <div className="space-y-1">
+                        <label className="text-[10px] uppercase font-bold tracking-widest text-stone-400">First Name</label>
+                        <input required name="firstName" type="text" data-testid="input-first-name"
+                          className="w-full px-4 py-3 bg-stone-50 border border-stone-200 rounded-lg focus:outline-none focus:border-stone-400 transition-colors text-stone-800" />
+                      </div>
+                      <div className="space-y-1">
+                        <label className="text-[10px] uppercase font-bold tracking-widest text-stone-400">Last Name</label>
+                        <input required name="lastName" type="text" data-testid="input-last-name"
+                          className="w-full px-4 py-3 bg-stone-50 border border-stone-200 rounded-lg focus:outline-none focus:border-stone-400 transition-colors text-stone-800" />
+                      </div>
+                    </div>
+
                     <div className="space-y-1">
-                      <label className="text-[10px] uppercase font-bold tracking-widest text-stone-400">Full Name</label>
-                      <input required name="name" type="text" className="w-full px-4 py-3 bg-stone-50 border border-stone-200 rounded-lg focus:outline-none focus:border-stone-400 transition-colors text-stone-800" />
+                      <label className="text-[10px] uppercase font-bold tracking-widest text-stone-400">Email Address</label>
+                      <input required name="email" type="email" data-testid="input-email"
+                        className="w-full px-4 py-3 bg-stone-50 border border-stone-200 rounded-lg focus:outline-none focus:border-stone-400 transition-colors text-stone-800" />
                     </div>
 
                     <div className="space-y-1">
                       <label className="text-[10px] uppercase font-bold tracking-widest text-stone-400">Phone Number</label>
-                      <input required name="phone" type="tel" className="w-full px-4 py-3 bg-stone-50 border border-stone-200 rounded-lg focus:outline-none focus:border-stone-400 transition-colors text-stone-800" />
+                      <input required name="phone" type="tel" data-testid="input-phone"
+                        className="w-full px-4 py-3 bg-stone-50 border border-stone-200 rounded-lg focus:outline-none focus:border-stone-400 transition-colors text-stone-800" />
                     </div>
 
                     <div className="space-y-1">
-                      <label className="text-[10px] uppercase font-bold tracking-widest text-stone-400">Profession</label>
-                      <input required name="profession" type="text" className="w-full px-4 py-3 bg-stone-50 border border-stone-200 rounded-lg focus:outline-none focus:border-stone-400 transition-colors text-stone-800" placeholder="e.g. Entrepreneur, Lawyer, Consultant..." />
+                      <label className="text-[10px] uppercase font-bold tracking-widest text-stone-400">Message <span className="text-stone-300 font-normal normal-case">(optional)</span></label>
+                      <textarea name="message" rows={3} data-testid="input-message"
+                        placeholder="Brief description of what you'd like to discuss..."
+                        className="w-full px-4 py-3 bg-stone-50 border border-stone-200 rounded-lg focus:outline-none focus:border-stone-400 transition-colors text-stone-800 resize-none" />
                     </div>
 
-                    <button type="submit" disabled={loading}
+                    <button type="submit" disabled={loading} data-testid="button-confirm-booking"
                       className={`w-full py-4 mt-2 bg-stone-900 text-white rounded-lg font-bold uppercase tracking-[0.2em] text-xs transition-all shadow-lg shadow-stone-200 flex items-center justify-center gap-2 ${loading ? 'opacity-70 cursor-not-allowed' : 'hover:bg-stone-800'}`}>
-                      {loading ? 'Booking...' : 'Confirm Call'}
+                      {loading ? 'Sending...' : 'Send Request'}
                     </button>
                   </form>
                 </div>

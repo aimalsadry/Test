@@ -28,10 +28,6 @@ Appear in Admin Panel
 
 Prevent double booking of approved time slots.
 
-⚙️ Booking System Rules
-
-1️⃣ Working Hours Settings (Editable by Admin 
-
 🗂 Admin Panel Structure
 
 Header sections:
@@ -41,7 +37,9 @@ Calendar
 New Meeting Requests
 
 Today Jobs
-n)
+
+⚙️ Booking System Rules
+1️⃣ Working Hours Settings (Editable by Admin)
 
 Admin must be able to:
 

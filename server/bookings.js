@@ -112,35 +112,24 @@ router.get('/available-slots', async (req, res) => {
 
 router.post('/book', async (req, res) => {
   try {
-    const { name, phone, profession, preferredDate, preferredTime, sourcePage } = req.body;
+    const { firstName, lastName, email, phone, message, preferredDate, preferredTime, sourcePage } = req.body;
 
-    if (!name || !phone || !profession || !preferredDate || !preferredTime) {
+    if (!firstName || !lastName || !email || !phone || !preferredDate || !preferredTime) {
       return res.status(400).json({ error: 'All required fields must be filled' });
     }
 
-    const duration = 10;
-    const buffer = 5;
+    const settingsResult = await pool.query('SELECT * FROM booking_settings');
+    const settings = {};
+    settingsResult.rows.forEach(r => { settings[r.setting_key] = r.setting_value; });
+    const duration = parseInt(settings.meeting_duration_minutes || '30');
 
     const endTime = minutesToTime(timeToMinutes(preferredTime) + duration);
 
-    const conflictCheck = await pool.query(
-      `SELECT id FROM bookings 
-       WHERE preferred_date = $1 AND status = 'approved'
-       AND (
-         ($2::time < end_time + ($3 || ' minutes')::interval AND $4::time > preferred_time)
-       )`,
-      [preferredDate, preferredTime, buffer, endTime]
-    );
-
-    if (conflictCheck.rows.length > 0) {
-      return res.status(409).json({ error: 'This time slot is no longer available' });
-    }
-
     const result = await pool.query(
       `INSERT INTO bookings (first_name, last_name, email, phone, preferred_date, preferred_time, end_time, message, source_page, status)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, 'approved')
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, 'pending')
        RETURNING id`,
-      [name, '', '', phone, preferredDate, preferredTime, endTime, profession, sourcePage || 'unknown']
+      [firstName, lastName, email, phone, preferredDate, preferredTime, endTime, message || '', sourcePage || 'unknown']
     );
 
     res.json({ success: true, bookingId: result.rows[0].id });

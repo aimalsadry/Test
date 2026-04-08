@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
-import { MapPin, Clock, X, Minus, Plus, AlertCircle, Music, Star, ChevronLeft, ChevronRight } from 'lucide-react';
+import { MapPin, Clock, X, AlertCircle, Music, Star, ChevronLeft, ChevronRight } from 'lucide-react';
 
 interface EventPackage {
   id: number;
@@ -262,7 +262,7 @@ const EventPage: React.FC<Props> = ({ slug, onNavigateHome }) => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [selectedPkg, setSelectedPkg] = useState<EventPackage | null>(null);
-  const [quantity, setQuantity] = useState(1);
+  const quantity = 1;
   const [modalOpen, setModalOpen] = useState(false);
   const videoRef = useRef<HTMLVideoElement>(null);
 
@@ -416,25 +416,8 @@ const EventPage: React.FC<Props> = ({ slug, onNavigateHome }) => {
                 {selectedPkg && (
                   <div className="rounded-2xl overflow-hidden" style={{ backgroundColor: overlayColor }}>
                     <div className="p-6 md:p-8">
-                      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-                        <div>
-                          <p className="text-white/60 text-sm mb-1">Number of Tickets</p>
-                          <div className="flex items-center gap-4">
-                            <button
-                              data-testid="button-qty-minus"
-                              onClick={() => setQuantity(q => Math.max(1, q - 1))}
-                              className="w-10 h-10 rounded-full border border-white/30 text-white flex items-center justify-center hover:bg-white/10 transition-colors">
-                              <Minus size={16} />
-                            </button>
-                            <span data-testid="text-quantity" className="text-white font-serif text-3xl font-bold w-8 text-center">{quantity}</span>
-                            <button
-                              data-testid="button-qty-plus"
-                              onClick={() => setQuantity(q => Math.min(10, q + 1))}
-                              className="w-10 h-10 rounded-full border border-white/30 text-white flex items-center justify-center hover:bg-white/10 transition-colors">
-                              <Plus size={16} />
-                            </button>
-                          </div>
-                        </div>
+                      <div className="flex items-center justify-between">
+                        <p className="text-white/60 text-sm">1 Ticket</p>
                         <div className="text-right">
                           <p className="text-white/60 text-sm">Total</p>
                           <p className="text-amber-400 font-serif text-4xl font-bold">€{total.toFixed(2)}</p>
@@ -452,7 +435,7 @@ const EventPage: React.FC<Props> = ({ slug, onNavigateHome }) => {
                             }
                           }}
                           className="w-full py-4 bg-amber-500 text-stone-900 font-bold uppercase tracking-[0.15em] text-sm rounded-xl hover:bg-amber-400 transition-colors shadow-lg shadow-amber-500/20">
-                          Buy {quantity} Ticket{quantity > 1 ? 's' : ''} — €{total.toFixed(2)}
+                          Buy 1 Ticket — €{total.toFixed(2)}
                           {selectedPkg?.payment_link && <span className="ml-2 text-[10px] opacity-60">↗ external</span>}
                         </button>
                         {!selectedPkg?.payment_link && (
