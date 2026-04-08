@@ -1,6 +1,34 @@
 import express from 'express';
 import { randomUUID } from 'crypto';
 import pool from './db.js';
+import { translateText, isValidLang } from './translate.js';
+
+async function overlayTranslations(obj, entityType, entityId, lang, fields) {
+  if (!lang || lang === 'en' || !isValidLang(lang)) return obj;
+  const result = { ...obj };
+  for (const field of fields) {
+    const original = obj[field];
+    if (!original) continue;
+    const cached = await pool.query(
+      'SELECT translated_text FROM content_translations WHERE entity_type=$1 AND entity_id=$2 AND language=$3 AND field_name=$4',
+      [entityType, entityId, lang, field]
+    );
+    if (cached.rows.length > 0) {
+      result[field] = cached.rows[0].translated_text;
+    } else {
+      const translated = await translateText(original, lang);
+      await pool.query(
+        `INSERT INTO content_translations (entity_type, entity_id, language, field_name, translated_text)
+         VALUES ($1,$2,$3,$4,$5)
+         ON CONFLICT (entity_type, entity_id, language, field_name)
+         DO UPDATE SET translated_text = EXCLUDED.translated_text`,
+        [entityType, entityId, lang, field, translated]
+      );
+      result[field] = translated;
+    }
+  }
+  return result;
+}
 
 const router = express.Router();
 
@@ -24,13 +52,15 @@ router.get('/header', async (req, res) => {
 router.get('/by-slug/:slug', async (req, res) => {
   try {
     const { slug } = req.params;
+    const lang = String(req.query.lang || 'en').toLowerCase();
     const result = await pool.query(
       `SELECT id, title, description, date, time, venue, slug, bg_image, bg_type, bg_video, text_bg_color, text_bg_opacity
        FROM events WHERE slug = $1 AND is_published = true`,
       [slug]
     );
     if (result.rows.length === 0) return res.status(404).json({ error: 'Event not found' });
-    const event = result.rows[0];
+    let event = result.rows[0];
+    event = await overlayTranslations(event, 'event', event.id, lang, ['title', 'description']);
     const pkgs = await pool.query(
       'SELECT id, name, description, price, payment_link, sort_order FROM event_packages WHERE event_id = $1 ORDER BY sort_order, id',
       [event.id]
