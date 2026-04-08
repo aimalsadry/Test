@@ -265,12 +265,18 @@ const EventPage: React.FC<Props> = ({ slug, onNavigateHome }) => {
   const quantity = 1;
   const [modalOpen, setModalOpen] = useState(false);
   const videoRef = useRef<HTMLVideoElement>(null);
+  const playAttempted = useRef(false);
 
   const playVideo = useCallback(() => {
     const v = videoRef.current;
     if (!v) return;
     v.muted = true;
-    v.play().catch(() => {});
+    v.volume = 0;
+    v.loop = true;
+    const attempt = () => v.play().catch(() => {});
+    attempt();
+    // Retry once after a short delay in case the first attempt was too early
+    setTimeout(attempt, 500);
   }, []);
 
   const load = useCallback(async () => {
@@ -294,10 +300,40 @@ const EventPage: React.FC<Props> = ({ slug, onNavigateHome }) => {
   }, [event]);
 
   useEffect(() => {
-    if (event?.bg_type === 'video' && event?.bg_video) {
-      const t = setTimeout(playVideo, 100);
-      return () => clearTimeout(t);
-    }
+    if (event?.bg_type !== 'video' || !event?.bg_video) return;
+
+    // Try immediately
+    const t1 = setTimeout(playVideo, 50);
+    const t2 = setTimeout(playVideo, 1000);
+
+    // On mobile, browsers need a user gesture. Capture the very first
+    // touch/scroll/click and use it to start the video silently.
+    const onGesture = () => {
+      if (playAttempted.current) return;
+      playAttempted.current = true;
+      playVideo();
+    };
+
+    // Restart whenever the tab becomes visible again
+    const onVisible = () => {
+      if (document.visibilityState === 'visible') playVideo();
+    };
+
+    document.addEventListener('touchstart', onGesture, { passive: true, once: true });
+    document.addEventListener('touchmove', onGesture, { passive: true, once: true });
+    document.addEventListener('scroll', onGesture, { passive: true, once: true });
+    document.addEventListener('click', onGesture, { once: true });
+    document.addEventListener('visibilitychange', onVisible);
+
+    return () => {
+      clearTimeout(t1);
+      clearTimeout(t2);
+      document.removeEventListener('touchstart', onGesture);
+      document.removeEventListener('touchmove', onGesture);
+      document.removeEventListener('scroll', onGesture);
+      document.removeEventListener('click', onGesture);
+      document.removeEventListener('visibilitychange', onVisible);
+    };
   }, [event, playVideo]);
 
   if (loading) {
@@ -345,9 +381,13 @@ const EventPage: React.FC<Props> = ({ slug, onNavigateHome }) => {
           loop
           playsInline
           preload="auto"
+          disablePictureInPicture
+          disableRemotePlayback
           onCanPlay={playVideo}
+          onLoadedData={playVideo}
           onEnded={playVideo}
-          className="fixed inset-0 w-full h-full object-cover z-0 pointer-events-none"
+          style={{ pointerEvents: 'none' }}
+          className="fixed inset-0 w-full h-full object-cover z-0"
         />
       )}
       {hasMedia && isGif && (
