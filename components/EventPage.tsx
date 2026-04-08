@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
-import { MapPin, Clock, X, AlertCircle, Music, Star, ChevronLeft, ChevronRight, Calendar, Ticket } from 'lucide-react';
+import { MapPin, Clock, X, AlertCircle, Music, Star, ChevronLeft, ChevronRight, Calendar, Ticket, Globe } from 'lucide-react';
+import { useLanguage, languages } from '../LanguageContext';
 
 interface EventPackage {
   id: number;
@@ -235,6 +236,11 @@ const CountdownUnit: React.FC<{ value: number; label: string }> = ({ value, labe
 );
 
 const EventPage: React.FC<Props> = ({ slug, onNavigateHome }) => {
+  const { language, setLanguage } = useLanguage();
+  const currentLang = languages.find(l => l.code === language);
+  const [langOpen, setLangOpen] = useState(false);
+  const langRef = useRef<HTMLDivElement>(null);
+
   const [event, setEvent] = useState<EventData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -244,6 +250,16 @@ const EventPage: React.FC<Props> = ({ slug, onNavigateHome }) => {
   const videoRef = useRef<HTMLVideoElement>(null);
   const playAttempted = useRef(false);
   const ticketRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const handler = (e: MouseEvent) => {
+      if (langRef.current && !langRef.current.contains(e.target as Node)) {
+        setLangOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, []);
 
   const countdown = useCountdown(event?.date || '', event?.time || '');
 
@@ -363,6 +379,38 @@ const EventPage: React.FC<Props> = ({ slug, onNavigateHome }) => {
             className="text-white/70 hover:text-white text-xs font-bold uppercase tracking-widest transition-colors flex items-center gap-1">
             ← Aimal.fi
           </button>
+
+          {/* Language selector */}
+          <div className="relative" ref={langRef}>
+            <button
+              onClick={() => setLangOpen(o => !o)}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-full backdrop-blur-md bg-white/10 border border-white/15 text-white/80 hover:text-white hover:bg-white/15 transition-all text-xs font-bold uppercase tracking-wider"
+            >
+              <span className="text-sm leading-none">{currentLang?.flag}</span>
+              <span>{language.toUpperCase()}</span>
+              <Globe size={11} className="opacity-60" />
+            </button>
+
+            {langOpen && (
+              <div className="absolute right-0 top-full mt-2 w-44 rounded-xl overflow-hidden shadow-2xl border border-white/10 backdrop-blur-xl bg-stone-900/90 z-50 max-h-72 overflow-y-auto">
+                {languages.map(lang => (
+                  <button
+                    key={lang.code}
+                    onClick={() => { setLanguage(lang.code); setLangOpen(false); }}
+                    className={`w-full flex items-center gap-2.5 px-3 py-2 text-xs text-left transition-colors ${
+                      lang.code === language
+                        ? 'bg-amber-500/20 text-amber-400 font-bold'
+                        : 'text-white/70 hover:bg-white/10 hover:text-white'
+                    }`}
+                  >
+                    <span className="text-base leading-none">{lang.flag}</span>
+                    <span>{lang.name}</span>
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+
           <span className="text-white/40 text-[10px] uppercase tracking-widest font-bold">Event</span>
         </nav>
 
