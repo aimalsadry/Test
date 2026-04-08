@@ -458,7 +458,7 @@ const EventPage: React.FC<Props> = ({ slug, onNavigateHome }) => {
 
           {/* Description */}
           {event.description && (
-            <p className="text-white/75 text-base md:text-lg leading-relaxed max-w-xl mb-10"
+            <p className="text-white/75 text-base md:text-lg leading-relaxed max-w-xl mb-10 whitespace-pre-wrap"
               style={{ textShadow: '0 1px 12px rgba(0,0,0,0.6)' }}>
               {event.description}
             </p>
