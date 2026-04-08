@@ -13,6 +13,7 @@ interface Purchase {
   buyer_name: string;
   buyer_email: string;
   buyer_phone: string;
+  buyer_note: string | null;
   package_name: string;
   package_price: string;
   quantity: number;
@@ -168,6 +169,12 @@ const EventReceiptPage: React.FC<Props> = ({ purchaseId, onNavigateHome }) => {
               <p className="text-white text-sm font-bold print:text-stone-900">€{parseFloat(purchase.amount_paid).toFixed(2)}</p>
             </div>
           </div>
+          {purchase.buyer_note && (
+            <div className="px-6 py-4 border-b border-stone-800 print:border-stone-200">
+              <p className="text-[10px] uppercase font-bold tracking-widest text-stone-500 mb-1">Your Note</p>
+              <p className="text-stone-300 text-sm print:text-stone-700">{purchase.buyer_note}</p>
+            </div>
+          )}
 
           <div className="px-6 py-5">
             <p className="text-[10px] uppercase font-bold tracking-widest text-stone-500 mb-4">

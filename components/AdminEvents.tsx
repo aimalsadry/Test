@@ -64,6 +64,7 @@ interface Attendee {
   buyer_name: string;
   buyer_email: string;
   buyer_phone: string;
+  buyer_note: string | null;
   package_name: string;
   package_price: string;
   quantity: number;
@@ -572,6 +573,12 @@ const AttendeesView: React.FC<{ eventId: number }> = ({ eventId }) => {
               </button>
               {expanded === a.id && (
                 <div className="border-t border-stone-100 p-3 space-y-2">
+                  {a.buyer_note && (
+                    <div className="px-2 py-2 bg-amber-50 border border-amber-100 rounded-lg">
+                      <p className="text-[10px] uppercase font-bold tracking-widest text-amber-600 mb-0.5">Note</p>
+                      <p className="text-sm text-stone-700">{a.buyer_note}</p>
+                    </div>
+                  )}
                   {(a.tickets || []).map((ticket, ti) => (
                     <div key={ticket.id} className={`flex items-center gap-3 p-2 rounded-lg ${ticket.is_checked_in ? 'bg-green-50 border border-green-200' : 'bg-stone-50 border border-stone-200'}`}>
                       <span className="text-xs text-stone-500 font-mono shrink-0">Ticket #{ti + 1}</span>

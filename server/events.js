@@ -49,7 +49,7 @@ router.get('/by-slug/:slug', async (req, res) => {
 router.post('/:id/purchase', async (req, res) => {
   try {
     const { id } = req.params;
-    const { buyer_name, buyer_email, buyer_phone, package_id, quantity } = req.body;
+    const { buyer_name, buyer_email, buyer_phone, package_id, quantity, buyer_note } = req.body;
 
     if (!buyer_name || !buyer_email || !buyer_phone) {
       return res.status(400).json({ error: 'Name, email, and phone are required' });
@@ -71,9 +71,9 @@ router.post('/:id/purchase', async (req, res) => {
     const receiptToken = randomUUID();
 
     const purchaseResult = await pool.query(
-      `INSERT INTO event_purchases (event_id, package_id, package_name, package_price, quantity, amount_paid, buyer_name, buyer_email, buyer_phone, status, receipt_token)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, 'pending', $10) RETURNING *`,
-      [id, pkg.id, pkg.name, pkg.price, qty, amountPaid, buyer_name, buyer_email, buyer_phone, receiptToken]
+      `INSERT INTO event_purchases (event_id, package_id, package_name, package_price, quantity, amount_paid, buyer_name, buyer_email, buyer_phone, buyer_note, status, receipt_token)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, 'pending', $11) RETURNING *`,
+      [id, pkg.id, pkg.name, pkg.price, qty, amountPaid, buyer_name, buyer_email, buyer_phone, buyer_note || null, receiptToken]
     );
     const purchase = purchaseResult.rows[0];
 

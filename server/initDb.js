@@ -291,6 +291,7 @@ export async function initDb() {
       buyer_name TEXT NOT NULL,
       buyer_email TEXT NOT NULL,
       buyer_phone TEXT NOT NULL DEFAULT '',
+      buyer_note TEXT,
       status TEXT DEFAULT 'pending',
       receipt_token TEXT UNIQUE NOT NULL,
       sumup_checkout_id TEXT DEFAULT '',
@@ -314,6 +315,7 @@ export async function initDb() {
   await pool.query(`ALTER TABLE events ADD COLUMN IF NOT EXISTS bg_video TEXT DEFAULT ''`);
   await pool.query(`ALTER TABLE event_packages ADD COLUMN IF NOT EXISTS payment_link TEXT DEFAULT ''`);
   await pool.query(`ALTER TABLE events ADD COLUMN IF NOT EXISTS bar_host_pin TEXT DEFAULT ''`);
+  await pool.query(`ALTER TABLE event_purchases ADD COLUMN IF NOT EXISTS buyer_note TEXT`);
 
   await pool.query(`
     CREATE TABLE IF NOT EXISTS bar_requests (

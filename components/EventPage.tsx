@@ -82,6 +82,7 @@ const CheckoutModal: React.FC<{
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [phone, setPhone] = useState('');
+  const [note, setNote] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
@@ -99,7 +100,7 @@ const CheckoutModal: React.FC<{
       const res = await fetch(`/api/events/${event.id}/purchase`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ buyer_name: name, buyer_email: email, buyer_phone: phone, package_id: selectedPackage.id, quantity }),
+        body: JSON.stringify({ buyer_name: name, buyer_email: email, buyer_phone: phone, buyer_note: note || undefined, package_id: selectedPackage.id, quantity }),
       });
       const data = await res.json();
       if (!res.ok) { setError(data.error || t('ev_connection_error')); setLoading(false); return; }
@@ -152,6 +153,11 @@ const CheckoutModal: React.FC<{
             <label className="text-[10px] uppercase font-bold tracking-widest text-stone-400 block mb-1">{t('ev_phone')} *</label>
             <input data-testid="input-buyer-phone" type="tel" value={phone} onChange={e => setPhone(e.target.value)} required
               className="w-full px-4 py-3 bg-stone-50 border border-stone-200 rounded-lg focus:outline-none focus:border-stone-400 text-stone-800" placeholder="+358 40 000 0000" />
+          </div>
+          <div>
+            <label className="text-[10px] uppercase font-bold tracking-widest text-stone-400 block mb-1">Note <span className="normal-case font-normal text-stone-300">(optional)</span></label>
+            <textarea data-testid="input-buyer-note" value={note} onChange={e => setNote(e.target.value)} rows={3}
+              className="w-full px-4 py-3 bg-stone-50 border border-stone-200 rounded-lg focus:outline-none focus:border-stone-400 text-stone-800 resize-none" placeholder="Any special requests or message for the organiser..." />
           </div>
           <p className="text-xs text-stone-400">{t('ev_qr_generated')}</p>
           <button data-testid="button-pay" type="submit" disabled={loading}
