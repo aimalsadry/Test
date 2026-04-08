@@ -287,12 +287,12 @@ router.delete('/:id/images/:imgId', requireAdmin, async (req, res) => {
 
 router.post('/', requireAdmin, async (req, res) => {
   try {
-    const { title, description, date, time, venue, slug, text_bg_color, text_bg_opacity, is_published, bg_image, bg_type, bg_video } = req.body;
+    const { title, description, date, time, venue, slug, text_bg_color, text_bg_opacity, is_published, bg_image, bg_type, bg_video, content_translations } = req.body;
     if (!title || !slug) return res.status(400).json({ error: 'Title and slug are required' });
     const result = await pool.query(
-      `INSERT INTO events (title, description, date, time, venue, slug, text_bg_color, text_bg_opacity, is_published, bg_image, bg_type, bg_video)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12) RETURNING *`,
-      [title, description || '', date || '', time || '', venue || '', slug, text_bg_color || '#000000', text_bg_opacity != null ? parseFloat(text_bg_opacity) : 0.5, !!is_published, bg_image || '', bg_type || 'image', bg_video || '']
+      `INSERT INTO events (title, description, date, time, venue, slug, text_bg_color, text_bg_opacity, is_published, bg_image, bg_type, bg_video, content_translations)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13) RETURNING *`,
+      [title, description || '', date || '', time || '', venue || '', slug, text_bg_color || '#000000', text_bg_opacity != null ? parseFloat(text_bg_opacity) : 0.5, !!is_published, bg_image || '', bg_type || 'image', bg_video || '', JSON.stringify(content_translations || {})]
     );
     res.json(result.rows[0]);
   } catch (err) {
@@ -305,11 +305,11 @@ router.post('/', requireAdmin, async (req, res) => {
 router.put('/:id', requireAdmin, async (req, res) => {
   try {
     const { id } = req.params;
-    const { title, description, date, time, venue, slug, text_bg_color, text_bg_opacity, is_published, bg_image, bg_type, bg_video } = req.body;
+    const { title, description, date, time, venue, slug, text_bg_color, text_bg_opacity, is_published, bg_image, bg_type, bg_video, content_translations } = req.body;
     const result = await pool.query(
-      `UPDATE events SET title=$1, description=$2, date=$3, time=$4, venue=$5, slug=$6, text_bg_color=$7, text_bg_opacity=$8, is_published=$9, bg_image=$10, bg_type=$11, bg_video=$12
-       WHERE id=$13 RETURNING *`,
-      [title, description || '', date || '', time || '', venue || '', slug, text_bg_color || '#000000', text_bg_opacity != null ? parseFloat(text_bg_opacity) : 0.5, !!is_published, bg_image || '', bg_type || 'image', bg_video || '', id]
+      `UPDATE events SET title=$1, description=$2, date=$3, time=$4, venue=$5, slug=$6, text_bg_color=$7, text_bg_opacity=$8, is_published=$9, bg_image=$10, bg_type=$11, bg_video=$12, content_translations=$13
+       WHERE id=$14 RETURNING *`,
+      [title, description || '', date || '', time || '', venue || '', slug, text_bg_color || '#000000', text_bg_opacity != null ? parseFloat(text_bg_opacity) : 0.5, !!is_published, bg_image || '', bg_type || 'image', bg_video || '', JSON.stringify(content_translations || {}), id]
     );
     if (result.rows.length === 0) return res.status(404).json({ error: 'Event not found' });
     res.json(result.rows[0]);

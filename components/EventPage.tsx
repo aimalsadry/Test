@@ -32,6 +32,7 @@ interface EventData {
   text_bg_opacity: number;
   packages: EventPackage[];
   images: EventImage[];
+  content_translations?: Record<string, { title?: string; description?: string }>;
 }
 
 interface Props {
@@ -344,6 +345,10 @@ const EventPage: React.FC<Props> = ({ slug, onNavigateHome }) => {
     );
   }
 
+  const localContent = event.content_translations?.[language] || {};
+  const displayTitle = localContent.title || event.title;
+  const displayDescription = localContent.description || event.description;
+
   const total = selectedPkg ? parseFloat(selectedPkg.price) * quantity : 0;
   const isVideo = event.bg_type === 'video';
   const isGif = event.bg_type === 'gif';
@@ -453,14 +458,14 @@ const EventPage: React.FC<Props> = ({ slug, onNavigateHome }) => {
           {/* Title */}
           <h1 className="font-serif font-bold text-white leading-none mb-6"
             style={{ fontSize: 'clamp(3rem, 10vw, 7rem)', textShadow: '0 2px 40px rgba(0,0,0,0.5)' }}>
-            {event.title}
+            {displayTitle}
           </h1>
 
           {/* Description */}
-          {event.description && (
+          {displayDescription && (
             <p className="text-white/75 text-base md:text-lg leading-relaxed max-w-xl mb-10"
               style={{ textShadow: '0 1px 12px rgba(0,0,0,0.6)' }}>
-              {event.description}
+              {displayDescription}
             </p>
           )}
 

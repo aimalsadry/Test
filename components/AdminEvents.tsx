@@ -32,6 +32,8 @@ interface EventImage {
   sort_order: number;
 }
 
+type TranslationEntry = { title: string; description: string };
+
 interface Event {
   id: number;
   title: string;
@@ -50,6 +52,7 @@ interface Event {
   bar_host_pin: string;
   package_count: string;
   attendee_count: string;
+  content_translations?: Record<string, TranslationEntry>;
 }
 
 interface Ticket {
@@ -76,6 +79,22 @@ interface Attendee {
 
 const slugify = (s: string) => s.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
 
+const LANG_OPTIONS = [
+  { code: 'fi', name: 'Suomi', flag: '🇫🇮' },
+  { code: 'sv', name: 'Svenska', flag: '🇸🇪' },
+  { code: 'ru', name: 'Русский', flag: '🇷🇺' },
+  { code: 'et', name: 'Eesti', flag: '🇪🇪' },
+  { code: 'ar', name: 'العربية', flag: '🇸🇦' },
+  { code: 'so', name: 'Soomaali', flag: '🇸🇴' },
+  { code: 'fa', name: 'فارسی', flag: '🇮🇷' },
+  { code: 'ku', name: 'کوردی', flag: '🇮🇶' },
+  { code: 'zh', name: '中文', flag: '🇨🇳' },
+  { code: 'sq', name: 'Shqip', flag: '🇦🇱' },
+  { code: 'th', name: 'ไทย', flag: '🇹🇭' },
+  { code: 'tr', name: 'Türkçe', flag: '🇹🇷' },
+  { code: 'ro', name: 'Română', flag: '🇷🇴' },
+];
+
 const EventForm: React.FC<{
   event: Partial<Event>;
   onSave: (data: Partial<Event>) => Promise<void>;
@@ -95,6 +114,23 @@ const EventForm: React.FC<{
     bg_type: event.bg_type || 'image',
     bg_video: event.bg_video || '',
   });
+
+  const [translations, setTranslations] = useState<Record<string, TranslationEntry>>(
+    (event.content_translations as Record<string, TranslationEntry>) || {}
+  );
+  const [selectedLang, setSelectedLang] = useState('fi');
+  const [translOpen, setTranslOpen] = useState(false);
+
+  const setTranslation = (lang: string, field: 'title' | 'description', value: string) => {
+    setTranslations(prev => ({
+      ...prev,
+      [lang]: { title: prev[lang]?.title || '', description: prev[lang]?.description || '', [field]: value },
+    }));
+  };
+
+  const clearTranslation = (lang: string) => {
+    setTranslations(prev => { const n = { ...prev }; delete n[lang]; return n; });
+  };
 
   const videoInputRef = useRef<HTMLInputElement>(null);
   const gifInputRef = useRef<HTMLInputElement>(null);
@@ -132,7 +168,7 @@ const EventForm: React.FC<{
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    onSave(form);
+    onSave({ ...form, content_translations: translations });
   };
 
   const hasBackground = form.bg_image || form.bg_video;
@@ -158,6 +194,81 @@ const EventForm: React.FC<{
         <label className="text-[10px] uppercase font-bold tracking-widest text-stone-400 block mb-1">Description</label>
         <textarea value={form.description} onChange={e => set('description', e.target.value)} rows={3}
           className="w-full px-3 py-2 bg-stone-50 border border-stone-200 rounded-lg text-sm text-stone-800 resize-none focus:outline-none focus:border-stone-400" />
+      </div>
+
+      {/* Content Translations */}
+      <div className="border border-stone-200 rounded-lg overflow-hidden">
+        <button type="button" onClick={() => setTranslOpen(o => !o)}
+          className="w-full flex items-center justify-between px-4 py-3 bg-stone-50 hover:bg-stone-100 text-left transition-colors">
+          <span className="text-[10px] uppercase font-bold tracking-widest text-stone-500 flex items-center gap-2">
+            🌐 Content Translations
+            {Object.keys(translations).filter(k => translations[k]?.title || translations[k]?.description).length > 0 && (
+              <span className="bg-green-100 text-green-700 px-1.5 py-0.5 rounded text-[9px] font-bold">
+                {Object.keys(translations).filter(k => translations[k]?.title || translations[k]?.description).length} lang
+              </span>
+            )}
+          </span>
+          {translOpen ? <ChevronUp size={14} className="text-stone-400" /> : <ChevronDown size={14} className="text-stone-400" />}
+        </button>
+        {translOpen && (
+          <div className="p-4 space-y-3 border-t border-stone-200">
+            <p className="text-[10px] text-stone-400">Enter translated title and description for each language. Leave blank to show the default English content.</p>
+            <div className="flex flex-wrap gap-1.5">
+              {LANG_OPTIONS.map(l => {
+                const hasTrans = !!(translations[l.code]?.title || translations[l.code]?.description);
+                return (
+                  <button key={l.code} type="button" onClick={() => setSelectedLang(l.code)}
+                    className={`flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-bold border transition-colors ${
+                      selectedLang === l.code
+                        ? 'bg-stone-900 text-white border-stone-900'
+                        : hasTrans
+                          ? 'bg-green-50 text-green-700 border-green-200 hover:border-green-400'
+                          : 'bg-stone-50 text-stone-500 border-stone-200 hover:border-stone-300'
+                    }`}>
+                    {l.flag} {l.code.toUpperCase()}
+                    {hasTrans && selectedLang !== l.code && <span className="ml-0.5 w-1.5 h-1.5 rounded-full bg-green-500 inline-block" />}
+                  </button>
+                );
+              })}
+            </div>
+            {(() => {
+              const lang = LANG_OPTIONS.find(l => l.code === selectedLang);
+              if (!lang) return null;
+              return (
+                <div className="space-y-3 pt-3 border-t border-stone-100">
+                  <p className="text-[10px] uppercase font-bold tracking-widest text-stone-400 flex items-center gap-1.5">
+                    {lang.flag} {lang.name}
+                  </p>
+                  <div>
+                    <label className="text-[10px] uppercase font-bold tracking-widest text-stone-400 block mb-1">Title</label>
+                    <input
+                      value={translations[selectedLang]?.title || ''}
+                      onChange={e => setTranslation(selectedLang, 'title', e.target.value)}
+                      className="w-full px-3 py-2 bg-stone-50 border border-stone-200 rounded-lg text-sm text-stone-800 focus:outline-none focus:border-stone-400"
+                      placeholder={form.title}
+                    />
+                  </div>
+                  <div>
+                    <label className="text-[10px] uppercase font-bold tracking-widest text-stone-400 block mb-1">Description</label>
+                    <textarea
+                      value={translations[selectedLang]?.description || ''}
+                      onChange={e => setTranslation(selectedLang, 'description', e.target.value)}
+                      rows={3}
+                      className="w-full px-3 py-2 bg-stone-50 border border-stone-200 rounded-lg text-sm text-stone-800 resize-none focus:outline-none focus:border-stone-400"
+                      placeholder={form.description}
+                    />
+                  </div>
+                  {(translations[selectedLang]?.title || translations[selectedLang]?.description) && (
+                    <button type="button" onClick={() => clearTranslation(selectedLang)}
+                      className="text-xs text-red-500 hover:text-red-700 font-bold">
+                      Clear {lang.name} translation
+                    </button>
+                  )}
+                </div>
+              );
+            })()}
+          </div>
+        )}
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
