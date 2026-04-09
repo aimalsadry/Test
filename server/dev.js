@@ -18,6 +18,11 @@ import { initDb } from './initDb.js';
 const app = express();
 const PgSession = connectPgSimple(session);
 
+if (!process.env.SESSION_SECRET) {
+  console.warn('WARNING: SESSION_SECRET is not set. Sessions will not survive server restarts. Set it as a Replit secret for stable admin sessions.');
+}
+const SESSION_SECRET = process.env.SESSION_SECRET || crypto.randomBytes(32).toString('hex');
+
 app.use(express.json({ limit: '150mb' }));
 
 app.use(session({
@@ -26,7 +31,7 @@ app.use(session({
     tableName: 'session',
     createTableIfMissing: true,
   }),
-  secret: process.env.SESSION_SECRET || crypto.randomBytes(32).toString('hex'),
+  secret: SESSION_SECRET,
   resave: false,
   saveUninitialized: false,
   cookie: {

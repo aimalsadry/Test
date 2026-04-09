@@ -3,7 +3,6 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 import session from 'express-session';
 import connectPgSimple from 'connect-pg-simple';
-import crypto from 'crypto';
 import bcrypt from 'bcryptjs';
 import authRoutes from './server/auth.js';
 import bookingRoutes from './server/bookings.js';
@@ -18,6 +17,12 @@ import pool from './server/db.js';
 import { initDb } from './server/initDb.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
+
+if (!process.env.SESSION_SECRET) {
+  console.error('FATAL: SESSION_SECRET environment variable is not set. Set it as a Replit secret before deploying to production.');
+  process.exit(1);
+}
+
 const app = express();
 const PgSession = connectPgSimple(session);
 
@@ -32,7 +37,7 @@ app.use(session({
     tableName: 'session',
     createTableIfMissing: true,
   }),
-  secret: process.env.SESSION_SECRET || crypto.randomBytes(32).toString('hex'),
+  secret: process.env.SESSION_SECRET,
   resave: false,
   saveUninitialized: false,
   cookie: {
