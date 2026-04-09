@@ -54,7 +54,7 @@ router.get('/by-slug/:slug', async (req, res) => {
     const { slug } = req.params;
     const lang = String(req.query.lang || 'en').toLowerCase();
     const result = await pool.query(
-      `SELECT id, title, description, date, time, venue, slug, bg_image, bg_type, bg_video, text_bg_color, text_bg_opacity
+      `SELECT id, title, description, date, time, venue, slug, bg_type, text_bg_color, text_bg_opacity
        FROM events WHERE slug = $1 AND is_published = true`,
       [slug]
     );
@@ -70,6 +70,39 @@ router.get('/by-slug/:slug', async (req, res) => {
       [event.id]
     );
     res.json({ ...event, packages: pkgs.rows, images: imgs.rows });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
+router.get('/:id/bg-media', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const result = await pool.query(
+      `SELECT bg_type, bg_video, bg_image FROM events WHERE id = $1 AND is_published = true`,
+      [id]
+    );
+    if (result.rows.length === 0) return res.status(404).json({ error: 'Event not found' });
+    const { bg_type, bg_video, bg_image } = result.rows[0];
+
+    const raw = (bg_type === 'video' || bg_type === 'gif') ? bg_video : bg_image;
+    if (!raw) return res.status(404).json({ error: 'No media' });
+
+    if (raw.startsWith('data:')) {
+      const commaIdx = raw.indexOf(',');
+      if (commaIdx === -1) return res.status(400).json({ error: 'Invalid media data' });
+      const meta = raw.substring(5, commaIdx);
+      const mimeType = meta.split(';')[0] || 'application/octet-stream';
+      const b64 = raw.substring(commaIdx + 1);
+      const buf = Buffer.from(b64, 'base64');
+      res.set('Content-Type', mimeType);
+      res.set('Content-Length', buf.length);
+      res.set('Cache-Control', 'public, max-age=86400');
+      return res.end(buf);
+    }
+
+    return res.redirect(raw);
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: 'Server error' });

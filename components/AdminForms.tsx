@@ -10,7 +10,8 @@ async function apiCall(url: string, options?: RequestInit) {
     headers: { 'Content-Type': 'application/json', ...options?.headers },
   });
   if (res.status === 401) {
-    window.location.hash = '#/admin';
+    alert('Your session has expired. Please log in again.');
+    window.location.href = '/admin';
     throw new Error('Session expired');
   }
   return res;

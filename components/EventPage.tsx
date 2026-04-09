@@ -25,9 +25,7 @@ interface EventData {
   time: string;
   venue: string;
   slug: string;
-  bg_image: string;
   bg_type: string;
-  bg_video: string;
   text_bg_color: string;
   text_bg_opacity: number;
   packages: EventPackage[];
@@ -303,7 +301,7 @@ const EventPage: React.FC<Props> = ({ slug, onNavigateHome }) => {
   }, [event]);
 
   useEffect(() => {
-    if (event?.bg_type !== 'video' || !event?.bg_video) return;
+    if (event?.bg_type !== 'video') return;
     const t1 = setTimeout(playVideo, 50);
     const t2 = setTimeout(playVideo, 1000);
     const onGesture = () => {
@@ -347,12 +345,13 @@ const EventPage: React.FC<Props> = ({ slug, onNavigateHome }) => {
   const total = selectedPkg ? parseFloat(selectedPkg.price) * quantity : 0;
   const isVideo = event.bg_type === 'video';
   const isGif = event.bg_type === 'gif';
-  const hasMedia = (isVideo || isGif) && event.bg_video;
-  const hasImageBg = event.bg_type === 'image' && event.bg_image;
+  const hasMedia = isVideo || isGif;
+  const hasImageBg = event.bg_type === 'image';
   const hasBg = hasMedia || hasImageBg;
+  const bgMediaUrl = `/api/events/${event.id}/bg-media`;
 
   const bgStyle: React.CSSProperties = hasImageBg
-    ? { backgroundImage: `url(${event.bg_image})`, backgroundSize: 'cover', backgroundPosition: 'center' }
+    ? { backgroundImage: `url(${bgMediaUrl})`, backgroundSize: 'cover', backgroundPosition: 'center' }
     : !hasMedia
       ? { background: 'linear-gradient(135deg, #0a0a0f 0%, #1c1c24 50%, #0a0a0f 100%)' }
       : {};
@@ -362,14 +361,14 @@ const EventPage: React.FC<Props> = ({ slug, onNavigateHome }) => {
 
       {/* ── Background video / gif ── */}
       {hasMedia && isVideo && (
-        <video ref={videoRef} src={event.bg_video} autoPlay muted loop playsInline preload="auto"
+        <video ref={videoRef} src={bgMediaUrl} autoPlay muted loop playsInline preload="auto"
           disablePictureInPicture disableRemotePlayback
           onCanPlay={playVideo} onLoadedData={playVideo} onEnded={playVideo}
           style={{ pointerEvents: 'none' }}
           className="fixed inset-0 w-full h-full object-cover z-0" />
       )}
       {hasMedia && isGif && (
-        <img src={event.bg_video} alt="" className="fixed inset-0 w-full h-full object-cover z-0 pointer-events-none" />
+        <img src={bgMediaUrl} alt="" className="fixed inset-0 w-full h-full object-cover z-0 pointer-events-none" />
       )}
 
       {/* ── Cinematic gradient overlay: dark top + dark bottom, open centre ── */}
