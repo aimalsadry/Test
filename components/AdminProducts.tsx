@@ -75,7 +75,16 @@ const ProductForm: React.FC<{
     setSaving(true);
     setError('');
     try {
-      const body = { title: title.trim(), description, price, discount_percent: discount, receipt_sentence: receiptSentence, sumup_checkout_url: checkoutUrl };
+      const body = {
+        title: title.trim(), description, price, discount_percent: discount,
+        receipt_sentence: receiptSentence, sumup_checkout_url: checkoutUrl,
+        ...(product ? {
+          checkout_info_enabled: product.checkout_info_enabled,
+          book_to_receive_enabled: product.book_to_receive_enabled,
+          book_to_receive_title: product.book_to_receive_title,
+          book_to_receive_buffer_days: product.book_to_receive_buffer_days,
+        } : {}),
+      };
       const url = product ? `${API}/products/${product.id}` : `${API}/products`;
       const method = product ? 'PUT' : 'POST';
       const res = await apiCall(url, { method, body: JSON.stringify(body) });
