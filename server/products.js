@@ -544,7 +544,12 @@ router.post('/:id/purchase', async (req, res) => {
     let checkoutUrl = null;
     const returnUrl = `${req.protocol}://${req.get('host')}/receipt/${purchase.id}?token=${receiptToken}`;
 
-    if (!isFree && sumupApiKey) {
+    if (!isFree && hasStaticUrl) {
+      const sep = product.sumup_checkout_url.includes('?') ? '&' : '?';
+      checkoutUrl = `${product.sumup_checkout_url}${sep}return_url=${encodeURIComponent(returnUrl)}`;
+    }
+
+    if (!isFree && !checkoutUrl && sumupApiKey) {
       try {
         const checkoutReference = `AIMAL-${purchase.id}-${Date.now()}`;
 
@@ -577,11 +582,6 @@ router.post('/:id/purchase', async (req, res) => {
       } catch (sumupErr) {
         console.error('SumUp checkout creation error:', sumupErr);
       }
-    }
-
-    if (!isFree && !checkoutUrl && hasStaticUrl) {
-      const sep = product.sumup_checkout_url.includes('?') ? '&' : '?';
-      checkoutUrl = `${product.sumup_checkout_url}${sep}return_url=${encodeURIComponent(returnUrl)}`;
     }
 
     res.json({
