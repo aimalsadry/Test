@@ -79,15 +79,17 @@ router.get('/by-slug/:slug', async (req, res) => {
 router.get('/:id/bg-media', async (req, res) => {
   try {
     const { id } = req.params;
+    const isAdmin = !!req.session?.adminId;
+    const publishedClause = isAdmin ? '' : 'AND is_published = true';
     const result = await pool.query(
-      `SELECT bg_type, bg_video, bg_image FROM events WHERE id = $1 AND is_published = true`,
+      `SELECT bg_type, bg_video, bg_image FROM events WHERE id = $1 ${publishedClause}`,
       [id]
     );
     if (result.rows.length === 0) return res.status(404).json({ error: 'Event not found' });
     const { bg_type, bg_video, bg_image } = result.rows[0];
 
     const raw = (bg_type === 'video' || bg_type === 'gif') ? bg_video : bg_image;
-    if (!raw) return res.status(404).json({ error: 'No media' });
+    if (!raw || raw.trim() === '') return res.status(404).json({ error: 'No media' });
 
     if (raw.startsWith('data:')) {
       const commaIdx = raw.indexOf(',');
@@ -98,7 +100,8 @@ router.get('/:id/bg-media', async (req, res) => {
       const buf = Buffer.from(b64, 'base64');
       res.set('Content-Type', mimeType);
       res.set('Content-Length', buf.length);
-      res.set('Cache-Control', 'public, max-age=86400');
+      const cacheControl = isAdmin ? 'no-store' : 'public, max-age=86400';
+      res.set('Cache-Control', cacheControl);
       return res.end(buf);
     }
 
