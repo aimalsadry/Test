@@ -763,7 +763,7 @@ const App: React.FC = () => {
               <div className="flex flex-col sm:flex-row items-center justify-center gap-4 mb-8">
                 <div className="flex items-center gap-2 text-stone-600 text-sm">
                   <MapPin size={14} className="text-nobel-gold flex-shrink-0" />
-                  <span>Rusthollarinkuja 2, 00910 Helsinki</span>
+                  <span> Rahakamarinportti 3 B, 00240, Finland Helsinki</span>
                 </div>
                 <span className="hidden sm:block text-stone-300">|</span>
                 <div className="flex items-center gap-2 text-stone-600 text-sm">
