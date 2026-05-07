@@ -1088,3 +1088,10 @@ const App: React.FC = () => {
 };
 
 export default App;
+<div className="ticker">
+  <span>BTC ↑ 67,000</span>
+  <span>ETH ↑ 3,400</span>
+  <span>NVIDIA +2.4%</span>
+  <span>APPLE -1.2%</span>
+  <span>S&P 500 LIVE</span>
+</div>
