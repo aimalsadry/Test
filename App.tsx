@@ -53,6 +53,13 @@ const AnalogClock = ({ city, timezone }: { city: string; timezone: string }) => 
   const r = 40;
 
   return (
+<div className="ticker">
+  <span>BTC ↑ 67,000</span>
+  <span>ETH ↑ 3,400</span>
+  <span>NVIDIA +2.4%</span>
+  <span>APPLE -1.2%</span>
+  <span>S&P 500 LIVE</span>
+</div>
     <div className="flex flex-col items-center gap-3">
       <svg width="90" height="90" viewBox="0 0 100 100">
         <circle cx="50" cy="50" r={r} fill="#292524" stroke="#78716c" strokeWidth="1.5" />
