@@ -602,7 +602,7 @@ const App: React.FC = () => {
             {!imageError ? (
               <img 
                 src={profileImage || '/images/profile-photo.png'} 
-                alt="Aimal.fi"
+                alt="AimalSadry.fi"
                 className="w-full h-full object-cover grayscale transition-all duration-700 group-hover:grayscale-0 group-hover:scale-105"
                 onError={() => setImageError(true)}
               />
@@ -616,7 +616,7 @@ const App: React.FC = () => {
           
           {/* Text Content */}
           <div className="p-10 text-center">
-            <h1 className="font-serif text-4xl text-stone-900 mb-2 font-bold">Aimal.fi</h1>
+            <h1 className="font-serif text-4xl text-stone-900 mb-2 font-bold">AimalSadry.fi</h1>
             <p className="text-stone-600 font-medium mb-1 text-sm tracking-wide">{t('card_tagline')}</p>
             <p className="text-stone-400 uppercase text-[10px] font-bold tracking-[0.2em] mb-10">{t('card_location')}</p>
             
@@ -681,7 +681,7 @@ const App: React.FC = () => {
 
         <div className="flex items-center cursor-pointer" onClick={navigateTo('home')}>
           <span className={`font-serif font-bold text-lg tracking-wide transition-opacity ${scrolled ? 'opacity-100' : 'opacity-0 md:opacity-100'}`}>
-            Aimal.fi <span className="font-normal uppercase text-xs tracking-widest ml-2" style={{ color: '#b99755' }}>{t('nav_advisory')}</span>
+            AimalSadry.fi <span className="font-normal uppercase text-xs tracking-widest ml-2" style={{ color: '#b99755' }}>{t('nav_advisory')}</span>
           </span>
         </div>
       </div>
