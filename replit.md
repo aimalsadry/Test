@@ -1,7 +1,7 @@
-# Aimal.fi - Advisory Website
+# AimalSadry.fi - Advisory Website
 
 ## Overview
-A professional advisory website for Aimal.fi, a Helsinki-based consultancy offering Technology, Construction Planning, and Licensing Advisory services. Built with React, TypeScript, Vite, and Three.js for 3D visuals. Includes a secure admin panel with meeting booking system, contact messaging, and live market data.
+A professional advisory website for AimalSadry.fi, a Helsinki-based consultancy offering Technology, Construction Planning, and Licensing Advisory services. Built with React, TypeScript, Vite, and Three.js for 3D visuals. Includes a secure admin panel with meeting booking system, contact messaging, and live market data.
 
 ## Project Architecture
 - **Framework**: React 19 + TypeScript
